@@ -4,7 +4,55 @@ import { OBJLoader } from "three/addons/loaders/OBJLoader.js"
 
 let bunny
 
+const audioInput = document.getElementById("song");
+audioInput.addEventListener("change", setAudio, false);
+
+let noise = new SimplexNoise();
+const mainCanvas = document.getElementById("canvas");
+const label = document.getElementById("label");
+
+let audio = new Audio("breath_of_life_by_florence_and_the_machine.mp3");
+
+function setAudio() {
+    audio.pause()
+    const audioFile = this.files[0];
+    if(audioFile.name.includes(".mp3")) {
+      const audioURL = URL.createObjectURL(audioFile);
+      audio = new Audio(audioURL);
+      console.log(audio)
+
+      // Once a song is imported, render the scene
+      main()
+    }else{
+      alert("Invalid File Type!")
+    }
+    
+  }
+
+mainCanvas.addEventListener('click', () => {
+    console.log(audio)
+    if(audio.paused) {
+      audio.play()
+      label.style.display = "none"
+    } else {
+      audio.pause()
+      label.style.display = "flex"
+    }   
+})
+
+
 async function main() {
+    const audioContext = new AudioContext();
+    const audioSrc = audioContext.createMediaElementSource(audio);
+    const audioAnalyzer = audioContext.createAnalyser();
+
+    audioSrc.connect(audioAnalyzer);
+    audioAnalyzer.connect(audioContext.destination);
+    audioAnalyzer.fftSize = 512;
+    const bufferLength = audioAnalyzer.frequencyBinCount;
+
+    const dataArray = new Uint8Array(bufferLength);
+
     const canvas = document.querySelector('#canvas')
     const renderer = new THREE.WebGLRenderer({ antialias: true, canvas })
     renderer.outputColorSpace = THREE.SRGBColorSpace
@@ -15,11 +63,16 @@ async function main() {
     const near = 0.1
     const far = 100
     const camera = new THREE.PerspectiveCamera(fov, aspect, near, far)
-    camera.position.set(0, 10, 20)
+    camera.position.set(0, 10, 35)
 
     const controls = new OrbitControls(camera, canvas)
     controls.target.set(0, 5, 0)
     controls.update()
+
+    const wireframeMaterial = new THREE.MeshLambertMaterial({
+        color: "#696969",
+        wireframe: true
+      });
 
     const scene = new THREE.Scene()
     scene.background = new THREE.Color('white')
@@ -68,10 +121,12 @@ async function main() {
         bunny = await new Promise((resolve, reject) => {
             const loader = new OBJLoader()
             loader.load('resources/bunny.obj', root => {
+                const bunny = root.children[0]
                 console.log(root)
-                root.scale.set(100, 100, 100)
-                root.position.y = -2
-                resolve(root)
+                bunny.scale.set(100, 100, 100)
+                bunny.position.y = -3
+                bunny.material = wireframeMaterial
+                resolve(bunny)
             })
         })
 
@@ -91,6 +146,9 @@ async function main() {
 
     function render() {
 
+        audioAnalyzer.getByteFrequencyData(dataArray);
+        console.log(dataArray)
+
         if (resizeRendererToDisplaySize(renderer)) {
             const canvas = renderer.domElement
             camera.aspect = canvas.clientWidth / canvas.clientHeight
@@ -107,4 +165,4 @@ async function main() {
     requestAnimationFrame(render)
 }
 
-main()
+// main()
