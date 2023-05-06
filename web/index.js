@@ -2,7 +2,9 @@ import * as THREE from "three"
 import { OrbitControls } from "three/addons/controls/OrbitControls.js"
 import { OBJLoader } from "three/addons/loaders/OBJLoader.js"
 
-function main() {
+let bunny
+
+async function main() {
     const canvas = document.querySelector('#canvas')
     const renderer = new THREE.WebGLRenderer({ antialias: true, canvas })
     renderer.outputColorSpace = THREE.SRGBColorSpace
@@ -20,7 +22,7 @@ function main() {
     controls.update()
 
     const scene = new THREE.Scene()
-    scene.background = new THREE.Color('black')
+    scene.background = new THREE.Color('white')
 
     {
         const planeSize = 40
@@ -63,13 +65,17 @@ function main() {
     }
 
     {
-        const loader = new OBJLoader()
-        loader.load('resources/bunny.obj', root => {
-            console.log(root)
-            root.scale.set(100, 100, 100)
-            root.position.y = -2
-            scene.add(root)
+        bunny = await new Promise((resolve, reject) => {
+            const loader = new OBJLoader()
+            loader.load('resources/bunny.obj', root => {
+                console.log(root)
+                root.scale.set(100, 100, 100)
+                root.position.y = -2
+                resolve(root)
+            })
         })
+
+        scene.add(bunny)
     }
 
     function resizeRendererToDisplaySize(renderer) {
@@ -90,6 +96,8 @@ function main() {
             camera.aspect = canvas.clientWidth / canvas.clientHeight
             camera.updateProjectionMatrix()
         }
+
+        bunny.rotation.y += 0.01
 
         renderer.render(scene, camera)
 
