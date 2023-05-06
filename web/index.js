@@ -147,8 +147,12 @@ async function main() {
     function render() {
 
         audioAnalyzer.getByteFrequencyData(dataArray);
-        console.log(dataArray)
+        //console.log(dataArray)
+        let lowF = dataArray.slice(0,85).reduce(function(a, b){ return a+b;})/85
+        let midF = dataArray.slice(85,170).reduce(function(a, b){return a + b;})/85
+        let uppF = dataArray.slice(170,256).reduce(function(a, b){return a + b;})/85
 
+        console.log(lowF,midF,uppF)
         if (resizeRendererToDisplaySize(renderer)) {
             const canvas = renderer.domElement
             camera.aspect = canvas.clientWidth / canvas.clientHeight
