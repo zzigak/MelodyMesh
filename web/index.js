@@ -276,18 +276,26 @@ async function main() {
     
         const time = window.performance.now() * 0.0001 * highFreq;
         const rf = 0.00001;
-        const freqFactor = lowFreq * 0.1 * (1 + midFreq * 0.1); // Incorporate mid-frequency to adjust scaling
-    
+        //const freqFactor = lowFreq * 0.1 * (1 + midFreq * 0.1); // Incorporate mid-frequency to adjust scaling
+        const highFactor = highFreq *0.05;
+        const midFactor = midFreq *0.5;
+        const lowFactor = lowFreq ;
+
         for (let i = 0; i < positions.length; i += 3) {
             const x = originalVertexPositions[i];
             const y = originalVertexPositions[i + 1];
             const z = originalVertexPositions[i + 2];
     
             // Calculate the warp value with noise and frequency factor
-            let warp = Math.abs(noise.noise3D(x * rf * 4, y * rf * 6, z * rf * 7 + time) * freqFactor);
+            //let warp = Math.abs(noise.noise3D(x * rf * 4, y * rf * 6, z * rf * 7 + time) * freqFactor);
     
             // Limit the warp value to a reasonable range?? TODO: play around with these nums
-            warp = Math.min(Math.max(warp, -5), 5); // Adjust the range as needed to prevent triangles from exploding
+            //warp = Math.min(Math.max(warp, -5), 5); // Adjust the range as needed to prevent triangles from exploding
+
+
+            let warpX = Math.abs(noise.noise2D(x*rf+time, lowFactor));
+            let warpY = Math.abs(noise.noise2D(y*rf+time, midFactor));
+            let warpZ = Math.abs(noise.noise2D(z*rf+time, highFactor));
     
             const normal = new THREE.Vector3(
                 mesh.geometry.attributes.normal.array[i],
@@ -295,9 +303,9 @@ async function main() {
                 mesh.geometry.attributes.normal.array[i + 2]
             );
     
-            positions[i] = x + normal.x * warp;
-            positions[i + 1] = y + normal.y * warp;
-            positions[i + 2] = z + normal.z * warp;
+            positions[i] = x + normal.x * warpX;
+            positions[i + 1] = y + normal.y * warpY;
+            positions[i + 2] = z + normal.z * warpZ;
         }
     
         mesh.geometry.attributes.position.needsUpdate = true;
