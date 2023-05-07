@@ -5,7 +5,55 @@ import * as BufferGeometryUtils from "three/addons/utils/BufferGeometryUtils.js"
 
 let bunny
 
+const audioInput = document.getElementById("song");
+audioInput.addEventListener("change", setAudio, false);
+
+let noise = new SimplexNoise();
+const mainCanvas = document.getElementById("canvas");
+const label = document.getElementById("label");
+
+let audio = new Audio("breath_of_life_by_florence_and_the_machine.mp3");
+
+function setAudio() {
+    audio.pause()
+    const audioFile = this.files[0];
+    if (audioFile.name.includes(".mp3")) {
+        const audioURL = URL.createObjectURL(audioFile);
+        audio = new Audio(audioURL);
+        console.log(audio)
+
+        // Once a song is imported, render the scene
+        main()
+    } else {
+        alert("Invalid File Type!")
+    }
+
+}
+
+mainCanvas.addEventListener('click', () => {
+    console.log(audio)
+    if (audio.paused) {
+        audio.play()
+        label.style.display = "none"
+    } else {
+        audio.pause()
+        label.style.display = "flex"
+    }
+})
+
+
 async function main() {
+    const audioContext = new AudioContext();
+    const audioSrc = audioContext.createMediaElementSource(audio);
+    const audioAnalyzer = audioContext.createAnalyser();
+
+    audioSrc.connect(audioAnalyzer);
+    audioAnalyzer.connect(audioContext.destination);
+    audioAnalyzer.fftSize = 512;
+    const bufferLength = audioAnalyzer.frequencyBinCount;
+
+    const dataArray = new Uint8Array(bufferLength);
+
     const canvas = document.querySelector('#canvas')
     const renderer = new THREE.WebGLRenderer({ antialias: true, canvas })
     renderer.outputColorSpace = THREE.SRGBColorSpace
@@ -16,11 +64,16 @@ async function main() {
     const near = 0.1
     const far = 100
     const camera = new THREE.PerspectiveCamera(fov, aspect, near, far)
-    camera.position.set(0, 10, 20)
+    camera.position.set(0, 10, 35)
 
     const controls = new OrbitControls(camera, canvas)
     controls.target.set(0, 5, 0)
     controls.update()
+
+    const wireframeMaterial = new THREE.MeshLambertMaterial({
+        color: "#696969",
+        wireframe: true
+    });
 
     const scene = new THREE.Scene()
     scene.background = new THREE.Color('white')
@@ -139,6 +192,39 @@ async function main() {
     }
 
     function render() {
+        audioAnalyzer.getByteFrequencyData(dataArray);
+
+        // split the frequency data into 3 segments
+
+        const third = Math.floor(dataArray.length / 3)
+        const twoThird = Math.floor(dataArray.length * 2 / 3)
+
+        let lowRange = third
+        let midRange = twoThird
+        let highRange = dataArray.length
+
+        // For edge case when we have 1 or 2 extra bins in the last range. 
+        // So we increment midRange and decrement highRange to account for that.
+        // Now the ranges will always split evenly and cover all bins.
+        if (dataArray.length % 3 > 0) {
+            midRange++
+            highRange--
+        }
+
+        // loudest frequency in the low range
+        const lowMax = dataArray.slice(0, lowRange).reduce((a, b) => Math.max(a, b));
+
+        // avg frequency in the middle range
+        const midAvg = dataArray.slice(lowRange, midRange).reduce((a, b) => a + b) / (midRange - lowRange);
+
+        // loudest frequency in the upper range
+        const uppMax = dataArray.slice(midRange, highRange).reduce((a, b) => Math.max(a, b));
+
+        const lowFreq = lowMax / lowRange
+        const midFreq = midAvg / (midRange - lowRange)
+        const upperFreq = uppMax / (highRange - midRange)
+
+        console.log(lowFreq, midFreq, upperFreq)
 
         if (resizeRendererToDisplaySize(renderer)) {
             const canvas = renderer.domElement
@@ -156,4 +242,4 @@ async function main() {
     requestAnimationFrame(render)
 }
 
-main()
+// main()
