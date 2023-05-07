@@ -30,6 +30,16 @@ function setAudio() {
 
 }
 
+// Helper
+function mapRange(val, inMin, inMax, outMin, outMax) {
+    // Sample: mapRange(25, 10, 50, 0, 100);  
+    // Returns 50 - maps 25 from 10-50 range to 0-100
+    var fr = (val - inMin) / (inMax - inMin);
+    var delta = outMax - outMin;
+    return outMin + (fr * delta); 
+  }
+
+
 mainCanvas.addEventListener('click', () => {
     console.log(audio)
     if (audio.paused) {
@@ -77,6 +87,9 @@ async function main() {
 
     const scene = new THREE.Scene()
     scene.background = new THREE.Color('white')
+
+    let originalVertexPositions;
+
 
     {
         const planeSize = 40
@@ -220,12 +233,12 @@ async function main() {
         // loudest frequency in the upper range
         const uppMax = dataArray.slice(midRange, highRange).reduce((a, b) => Math.max(a, b));
 
-        const lowFreq = lowMax / lowRange
-        const midFreq = midAvg / (midRange - lowRange)
-        const upperFreq = uppMax / (highRange - midRange)
+        const lowMaxFreq = lowMax / lowRange
+        const midAvgFreq = midAvg / (midRange - lowRange)
+        const upperMaxFreq = uppMax / (highRange - midRange)
 
-        console.log(lowFreq, midFreq, upperFreq)
-
+        console.log(lowMaxFreq, midAvgFreq, upperMaxFreq)
+        
         if (resizeRendererToDisplaySize(renderer)) {
             const canvas = renderer.domElement
             camera.aspect = canvas.clientWidth / canvas.clientHeight
@@ -234,10 +247,65 @@ async function main() {
 
         // bunny.rotation.y += 0.01
 
+        // TODO: map the frequency values to the desired output ranges? (see sample below)
+       deformMeshWithAudio(bunny, lowMaxFreq, midAvgFreq, upperMaxFreq)
+    //    deformMeshWithAudio(bunny, 
+    //         mapRange(Math.pow(lowMaxFreq, 0.8), 0, 1, 0, 8), 
+    //         mapRange(midAvgFreq, 0, 1, 0, 4),
+    //         mapRange(upperMaxFreq, 0, 1, 0, 4)
+    //     )
+
         renderer.render(scene, camera)
 
         requestAnimationFrame(render)
     }
+
+    function deformMeshWithAudio(mesh, lowFreq, midFreq, highFreq) {
+        const geometry = mesh.geometry;
+    
+        if (!geometry.attributes.position.array) {
+          return;
+        }
+    
+        if (!originalVertexPositions) {
+            // Store the original positions of the vertices so we can restore them later
+            originalVertexPositions = mesh.geometry.attributes.position.array.slice();
+        }
+    
+        const positions = mesh.geometry.attributes.position.array;
+    
+        const time = window.performance.now() * 0.0001 * highFreq;
+        const rf = 0.00001;
+        const freqFactor = lowFreq * 0.01 * (1 + midFreq * 0.05); // Incorporate mid-frequency to adjust scaling
+    
+        for (let i = 0; i < positions.length; i += 3) {
+            const x = originalVertexPositions[i];
+            const y = originalVertexPositions[i + 1];
+            const z = originalVertexPositions[i + 2];
+    
+            // Calculate the warp value with noise and frequency factor
+            let warp = Math.abs(noise.noise3D(x * rf * 4, y * rf * 6, z * rf * 7 + time) * freqFactor);
+    
+            // Limit the warp value to a reasonable range
+            warp = Math.min(Math.max(warp, -2), 2); // Adjust the range as needed to prevent triangles from exploding
+    
+            const normal = new THREE.Vector3(
+                mesh.geometry.attributes.normal.array[i],
+                mesh.geometry.attributes.normal.array[i + 1],
+                mesh.geometry.attributes.normal.array[i + 2]
+            );
+    
+            positions[i] = x + normal.x * warp;
+            positions[i + 1] = y + normal.y * warp;
+            positions[i + 2] = z + normal.z * warp;
+        }
+    
+        mesh.geometry.attributes.position.needsUpdate = true;
+        mesh.geometry.computeVertexNormals();
+    }
+    
+    
+      
 
     requestAnimationFrame(render)
 }
