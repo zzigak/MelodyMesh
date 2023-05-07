@@ -67,42 +67,45 @@ async function main() {
 
     {
         bunny = await new Promise((resolve, reject) => {
-            const loader = new OBJLoader()
-            // loader.load("resources/windmill.obj", root => {
-            //     console.log(root)
-            //     resolve(root.children[0])
-            // })
-            loader.load('resources/bunny.obj', root => {
-                // actually get the mesh
-                const bunny = root.children[0]
-                bunny.scale.set(100, 100, 100)
-                bunny.position.y = -2
-                // apply the transform and then reset
-                bunny.updateMatrix()
-                bunny.geometry.applyMatrix4(bunny.matrix)
-                bunny.position.set(0, 0, 0)
-                bunny.rotation.set(0, 0, 0)
-                bunny.scale.set(1, 1, 1)
-                bunny.updateMatrix()
-                // merge redundant vertices
-                const old = bunny.geometry
-                const merged = old
-                // const merged = BufferGeometryUtils.mergeVertices(old, 1)
-                // old.dispose()
+            try {
+                const loader = new OBJLoader()
+                loader.load('resources/bunny.obj', root => {
+                    // actually get the mesh
+                    const bunny = root.children[0]
+                    // transform since the original is tiny
+                    bunny.scale.set(100, 100, 100)
+                    bunny.position.y = -2
+                    // apply the transform and then reset
+                    bunny.updateMatrix()
+                    bunny.geometry.applyMatrix4(bunny.matrix)
+                    bunny.position.set(0, 0, 0)
+                    bunny.rotation.set(0, 0, 0)
+                    bunny.scale.set(1, 1, 1)
+                    bunny.updateMatrix()
+                    // merge redundant vertices
+                    const old = bunny.geometry
+                    // the merge function only merges vertices if they share 
+                    // all the same attributes, but the normals are different
+                    // (that's what we want to fix). Remove the normals first, 
+                    // and then recalculate them later
+                    delete old.attributes.normal
+                    const merged = BufferGeometryUtils.mergeVertices(old)
+                    old.dispose()
 
-                const mesh = new THREE.Mesh(merged, bunny.material)
-                mesh.geometry.computeVertexNormals()
+                    const mesh = new THREE.Mesh(merged, bunny.material)
+                    mesh.geometry.computeVertexNormals()
 
-                resolve(mesh)
-            })
+                    resolve(mesh)
+                })
+            } catch (error) {
+                reject(error)
+            }
         })
 
         scene.add(bunny)
     }
 
     {
-        const positionAttribute = bunny.geometry.getAttribute("position")
-        const normalAttribute = bunny.geometry.getAttribute("normal")
         const normal = bunny.geometry.attributes.normal.array
         const position = bunny.geometry.attributes.position.array
 
@@ -112,14 +115,15 @@ async function main() {
             const origin = new THREE.Vector3(x, y, z)
             const direction = new THREE.Vector3(dx, dy, dz).normalize()
             const arrow = new THREE.ArrowHelper(direction, origin, 2, 0xffff00)
-
-            positionAttribute.setXYZ(Math.floor(i / 3), x + direction.x, y + direction.y, z + direction.z)
-            // console.log(origin, direction)
-            // break
+            // offset in the direction of the normal vector
+            position[i] = x + direction.x
+            position[i + 1] = y + direction.y
+            position[i + 2] = z + direction.z
             scene.add(arrow)
         }
 
-        positionAttribute.needsUpdate = true
+        // mark as dirty so that the positions get re-rendered
+        bunny.geometry.attributes.position.needsUpdate = true
     }
 
     function resizeRendererToDisplaySize(renderer) {
