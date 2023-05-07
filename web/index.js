@@ -59,7 +59,7 @@ async function main() {
 
     audioSrc.connect(audioAnalyzer);
     audioAnalyzer.connect(audioContext.destination);
-    audioAnalyzer.fftSize = 512;
+    audioAnalyzer.fftSize = 1024;
     const bufferLength = audioAnalyzer.frequencyBinCount;
 
     const dataArray = new Uint8Array(bufferLength);
@@ -229,15 +229,16 @@ async function main() {
 
         // avg frequency in the middle range
         const midAvg = dataArray.slice(lowRange, midRange).reduce((a, b) => a + b) / (midRange - lowRange);
-
+        const midMax = dataArray.slice(lowRange,midRange).reduce((a,b)=> Math.max(a,b));
         // loudest frequency in the upper range
         const uppMax = dataArray.slice(midRange, highRange).reduce((a, b) => Math.max(a, b));
+ 
+        const lowMaxFreq = lowMax  // / lowRange
+       // const midAvgFreq = midAvg
+        const midMaxFreq = midMax
+        const upperMaxFreq = uppMax // / (highRange - midRange)
 
-        const lowMaxFreq = lowMax / lowRange
-        const midAvgFreq = midAvg / (midRange - lowRange)
-        const upperMaxFreq = uppMax / (highRange - midRange)
-
-        console.log(lowMaxFreq, midAvgFreq, upperMaxFreq)
+        console.log(lowMaxFreq, midMaxFreq, upperMaxFreq)
         
         if (resizeRendererToDisplaySize(renderer)) {
             const canvas = renderer.domElement
@@ -245,14 +246,15 @@ async function main() {
             camera.updateProjectionMatrix()
         }
 
-        bunny.rotation.y += 0.01
+        //bunny.rotation.y += 0.01
 
         // TODO: map the frequency values to the desired output ranges? (see sample below)
        //deformMeshWithAudio(bunny, lowMaxFreq, midAvgFreq, upperMaxFreq)
        deformMeshWithAudio(bunny, 
-            mapRange(Math.pow(lowMaxFreq, 0.8), 0, 1, 0, 8), 
-            mapRange(midAvgFreq, 0, 1, 0, 4),
-            mapRange(upperMaxFreq, 0, 1, 0, 4)
+            mapRange(lowMaxFreq, 0, 255, 0, 10), 
+            //mapRange(midAvgFreq, 0, 255, 0, 10),
+            mapRange(midMax,0,255,0,10),
+            mapRange(upperMaxFreq, 0, 255, 0, 10)
         )
 
         renderer.render(scene, camera)
@@ -278,8 +280,8 @@ async function main() {
         const rf = 0.00001;
         //const freqFactor = lowFreq * 0.1 * (1 + midFreq * 0.1); // Incorporate mid-frequency to adjust scaling
         const highFactor = highFreq *0.05;
-        const midFactor = midFreq *0.5;
-        const lowFactor = lowFreq ;
+        const midFactor = midFreq *0.05;
+        const lowFactor = lowFreq * 0.05;
 
         for (let i = 0; i < positions.length; i += 3) {
             const x = originalVertexPositions[i];
