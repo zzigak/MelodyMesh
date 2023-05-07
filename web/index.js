@@ -92,7 +92,8 @@ async function main() {
                     const merged = BufferGeometryUtils.mergeVertices(old)
                     old.dispose()
 
-                    const mesh = new THREE.Mesh(merged, bunny.material)
+                    console.log(bunny.material)
+                    const mesh = new THREE.Mesh(merged, new THREE.MeshNormalMaterial({ flatShading: true }))
                     mesh.geometry.computeVertexNormals()
 
                     resolve(mesh)
@@ -119,7 +120,7 @@ async function main() {
             position[i] = x + direction.x
             position[i + 1] = y + direction.y
             position[i + 2] = z + direction.z
-            scene.add(arrow)
+            // scene.add(arrow)
         }
 
         // mark as dirty so that the positions get re-rendered
