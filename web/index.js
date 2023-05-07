@@ -12,7 +12,7 @@ let noise = new SimplexNoise();
 const mainCanvas = document.getElementById("canvas");
 const label = document.getElementById("label");
 
-let audio = new Audio("resources/epic.mp3");
+let audio = new Audio("resources/upbeat_percussion.mp3");
 
 function setAudio() {
     audio.pause()
@@ -245,15 +245,15 @@ async function main() {
             camera.updateProjectionMatrix()
         }
 
-        // bunny.rotation.y += 0.01
+        bunny.rotation.y += 0.01
 
         // TODO: map the frequency values to the desired output ranges? (see sample below)
-       deformMeshWithAudio(bunny, lowMaxFreq, midAvgFreq, upperMaxFreq)
-    //    deformMeshWithAudio(bunny, 
-    //         mapRange(Math.pow(lowMaxFreq, 0.8), 0, 1, 0, 8), 
-    //         mapRange(midAvgFreq, 0, 1, 0, 4),
-    //         mapRange(upperMaxFreq, 0, 1, 0, 4)
-    //     )
+       //deformMeshWithAudio(bunny, lowMaxFreq, midAvgFreq, upperMaxFreq)
+       deformMeshWithAudio(bunny, 
+            mapRange(Math.pow(lowMaxFreq, 0.8), 0, 1, 0, 8), 
+            mapRange(midAvgFreq, 0, 1, 0, 4),
+            mapRange(upperMaxFreq, 0, 1, 0, 4)
+        )
 
         renderer.render(scene, camera)
 
@@ -276,7 +276,7 @@ async function main() {
     
         const time = window.performance.now() * 0.0001 * highFreq;
         const rf = 0.00001;
-        const freqFactor = lowFreq * 0.01 * (1 + midFreq * 0.05); // Incorporate mid-frequency to adjust scaling
+        const freqFactor = lowFreq * 0.1 * (1 + midFreq * 0.1); // Incorporate mid-frequency to adjust scaling
     
         for (let i = 0; i < positions.length; i += 3) {
             const x = originalVertexPositions[i];
@@ -286,8 +286,8 @@ async function main() {
             // Calculate the warp value with noise and frequency factor
             let warp = Math.abs(noise.noise3D(x * rf * 4, y * rf * 6, z * rf * 7 + time) * freqFactor);
     
-            // Limit the warp value to a reasonable range
-            warp = Math.min(Math.max(warp, -2), 2); // Adjust the range as needed to prevent triangles from exploding
+            // Limit the warp value to a reasonable range?? TODO: play around with these nums
+            warp = Math.min(Math.max(warp, -5), 5); // Adjust the range as needed to prevent triangles from exploding
     
             const normal = new THREE.Vector3(
                 mesh.geometry.attributes.normal.array[i],
