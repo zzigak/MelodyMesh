@@ -147,12 +147,39 @@ async function main() {
     function render() {
 
         audioAnalyzer.getByteFrequencyData(dataArray);
-        //console.log(dataArray)
-        let lowF = dataArray.slice(0,85).reduce(function(a, b){ return a+b;})/85
-        let midF = dataArray.slice(85,170).reduce(function(a, b){return a + b;})/85
-        let uppF = dataArray.slice(170,256).reduce(function(a, b){return a + b;})/85
 
-        console.log(lowF,midF,uppF)
+        // split the frequency data into 3 segments
+
+        const third = Math.floor(dataArray.length / 3)
+        const twoThird = Math.floor(dataArray.length * 2 / 3)
+
+        let lowRange = third
+        let midRange = twoThird
+        let highRange = dataArray.length
+
+        // For edge case when we have 1 or 2 extra bins in the last range. 
+        // So we increment midRange and decrement highRange to account for that.
+        // Now the ranges will always split evenly and cover all bins.
+        if (dataArray.length % 3 > 0) {
+            midRange++
+            highRange--
+        }
+
+        // loudest frequency in the low range
+        const lowMax = dataArray.slice(0, lowRange).reduce((a, b) => Math.max(a, b));
+
+        // avg frequency in the middle range
+        const midAvg = dataArray.slice(lowRange, midRange).reduce((a, b) => a + b) / (midRange - lowRange);
+
+        // loudest frequency in the upper range
+        const uppMax = dataArray.slice(midRange, highRange).reduce((a, b) => Math.max(a, b));
+
+        const lowFreq = lowMax / lowRange
+        const midFreq = midAvg / (midRange - lowRange)
+        const upperFreq = uppMax / (highRange - midRange)
+
+        console.log(lowFreq, midFreq, upperFreq)
+        
         if (resizeRendererToDisplaySize(renderer)) {
             const canvas = renderer.domElement
             camera.aspect = canvas.clientWidth / canvas.clientHeight
