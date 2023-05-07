@@ -44,9 +44,11 @@ document.getElementById('playpause').addEventListener('click', () => {
     console.log(audio)
     if (audio.paused) {
         audio.play()
+        document.getElementById('playpause').innerHTML = 'Pause'
         //label.style.display = "none"
     } else {
         audio.pause()
+        document.getElementById('playpause').innerHTML = 'Pause'
         //label.style.display = "flex"
     }
 })

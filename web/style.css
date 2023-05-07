@@ -72,3 +72,18 @@ font: 1px/1px 'Helvetica Neue', Helvetica, Arial, sans-serif;
 font-weight: 300; 
 color:rgb(244, 242, 240);
 }
+
+
+.button {
+	font: 14px/14px 'Helvetica Neue', Helvetica, Arial, sans-serif; 
+  font-weight: 400; 
+  transition-duration: 0.4s;
+  background-color: black;
+  color: white;
+  border: 2px solid rgb(244, 242, 240); 
+}
+
+.button:hover {
+  background-color: rgb(244, 242, 240); 
+  color: white;
+}
