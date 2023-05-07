@@ -59,7 +59,7 @@ async function main() {
 
     audioSrc.connect(audioAnalyzer);
     audioAnalyzer.connect(audioContext.destination);
-    audioAnalyzer.fftSize = 512;
+    audioAnalyzer.fftSize = 1024;
     const bufferLength = audioAnalyzer.frequencyBinCount;
 
     const dataArray = new Uint8Array(bufferLength);
@@ -203,8 +203,8 @@ async function main() {
 
         // split the frequency data into 3 segments
 
-        const third = Math.floor(dataArray.length / 10)
-        const twoThird = Math.floor(dataArray.length/ 5)
+        const third = Math.floor(dataArray.length / 3)	
+        const twoThird = Math.floor(dataArray.length * 2 / 3)
 
         let lowRange = third
         let midRange = twoThird
@@ -222,17 +222,17 @@ async function main() {
         const lowMax = dataArray.slice(0, lowRange).reduce((a, b) => Math.max(a, b));
         // avg frequency in the middle range
         const midAvg = dataArray.slice(lowRange, midRange).reduce((a, b) => a + b) / (midRange - lowRange);
+        const midMax = dataArray.slice(lowRange,midRange).reduce((a,b)=> Math.max(a,b));
         // loudest frequency in the upper range
         const uppMax = dataArray.slice(midRange, highRange).reduce((a, b) => Math.max(a, b));
+ 
+        const lowMaxFreq = lowMax  // / lowRange
+       // const midAvgFreq = midAvg
+        const midMaxFreq = midMax
+        const upperMaxFreq = uppMax // / (highRange - midRange)
 
-        const lowMaxFreq = lowMax / lowRange
-        const midAvgFreq = midAvg / (midRange - lowRange)
-        const upperMaxFreq = uppMax / (highRange - midRange)
-
-        //console.log(lowMaxFreq, midAvgFreq, upperMaxFreq)
-
-
-
+        console.log(lowMaxFreq, midMaxFreq, upperMaxFreq)
+        
         let eqOutput = ''; 
         for (let i = 0; i < dataArray.length; i++) {
             const freq = Math.min(1, dataArray[i] / 255); 
@@ -241,8 +241,6 @@ async function main() {
         
         document.getElementById('eqoutput').innerHTML = eqOutput;
 
-        
-        //document.getElementById("output").innerHTML = "|".repeat(upperMaxFreq) + "<br/>" + "|".repeat(midAvgFreq) + "<br/>" + "|".repeat(lowMaxFreq);
         
         if (resizeRendererToDisplaySize(renderer)) {
             const canvas = renderer.domElement
@@ -255,8 +253,9 @@ async function main() {
         // TODO: map the frequency values to the desired output ranges? (see sample below)
        //deformMeshWithAudio(bunny, lowMaxFreq, midAvgFreq, upperMaxFreq)
        deformMeshWithAudio(bunny, 
-            mapRange(Math.pow(lowMaxFreq, 1), 0, 255, 0, 10), 
-            mapRange(midAvgFreq, 0, 255, 0, 10),
+            mapRange(lowMaxFreq, 0, 255, 0, 10), 
+            //mapRange(midAvgFreq, 0, 255, 0, 10),
+            mapRange(midMax,0,255,0,10),
             mapRange(upperMaxFreq, 0, 255, 0, 10)
         )
 
@@ -279,36 +278,12 @@ async function main() {
     
         const positions = mesh.geometry.attributes.position.array;
     
-        const time = window.performance.now()* 0.0001; // * highFreq;
+        const time = window.performance.now()* 0.0001 * highFreq;
         const rf = 0.00001;
-        const freqFactor = lowFreq * 0.1 * (1 + midFreq * 0.1); // Incorporate mid-frequency to adjust scaling
-    
-        for (let i = 0; i < positions.length; i += 3) {
-            const x = originalVertexPositions[i];
-            const y = originalVertexPositions[i + 1];
-            const z = originalVertexPositions[i + 2];
-    
-            // Calculate the warp value with noise and frequency factor
-            let warp = Math.abs(noise.noise4D(x * rf * 4, y * rf * 6, z * rf * 7 + time, freqFactor));
-    
-            // Limit the warp value to a reasonable range?? TODO: play around with these nums
-            warp = Math.min(Math.max(warp, -5), 5); // Adjust the range as needed to prevent triangles from exploding
-    
-            const normal = new THREE.Vector3(
-                mesh.geometry.attributes.normal.array[i],
-                mesh.geometry.attributes.normal.array[i + 1],
-                mesh.geometry.attributes.normal.array[i + 2]
-            );
-    
-            positions[i] = x + normal.x * (warp);
-            positions[i + 1] = y + normal.y * (warp);
-            positions[i + 2] = z + normal.z * (warp);
-
-        /*
         //const freqFactor = lowFreq * 0.1 * (1 + midFreq * 0.1); // Incorporate mid-frequency to adjust scaling
-        const highFactor = highFreq *0.01;
-        const midFactor = midFreq *0.5;
-        const lowFactor = lowFreq *2;
+        const highFactor = highFreq *0.05;
+        const midFactor = midFreq *0.05;
+        const lowFactor = lowFreq * 0.05;
 
         for (let i = 0; i < positions.length; i += 3) {
             const x = originalVertexPositions[i];
@@ -335,9 +310,6 @@ async function main() {
             positions[i] = x + normal.x * warpX;
             positions[i + 1] = y + normal.y * warpY;
             positions[i + 2] = z + normal.z * warpZ;
-        */
-
-
         }
         
         mesh.geometry.attributes.position.needsUpdate = true;
