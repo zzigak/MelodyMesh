@@ -12,7 +12,7 @@ let noise = new SimplexNoise();
 const mainCanvas = document.getElementById("canvas");
 const label = document.getElementById("label");
 
-let audio = new Audio("breath_of_life_by_florence_and_the_machine.mp3");
+let audio = new Audio("resources/epic.mp3");
 
 function setAudio() {
     audio.pause()
