@@ -40,14 +40,14 @@ function mapRange(val, inMin, inMax, outMin, outMax) {
   }
 
 
-mainCanvas.addEventListener('click', () => {
+document.getElementById('playpause').addEventListener('click', () => {
     console.log(audio)
     if (audio.paused) {
         audio.play()
-        label.style.display = "none"
+        //label.style.display = "none"
     } else {
         audio.pause()
-        label.style.display = "flex"
+        //label.style.display = "flex"
     }
 })
 
@@ -81,7 +81,7 @@ async function main() {
     controls.update()
 
     const wireframeMaterial = new THREE.MeshLambertMaterial({
-        color: "#696969",
+        color: "#ffffff",
         wireframe: true
     });
 
@@ -132,7 +132,7 @@ async function main() {
                     const bunny = root.children[0]
                     // transform since the original is tiny
                     bunny.scale.set(100, 100, 100)
-                    bunny.position.y = -10
+                    bunny.position.y = -5
                     // apply the transform and then reset
                     bunny.updateMatrix()
                     bunny.geometry.applyMatrix4(bunny.matrix)
@@ -152,7 +152,7 @@ async function main() {
 
                     console.log(bunny.material)
                     var bunnyMaterial = new THREE.MeshNormalMaterial({ flatShading: true })
-                    const mesh = new THREE.Mesh(merged, bunnyMaterial )
+                    const mesh = new THREE.Mesh(merged, wireframeMaterial ) //wireframeMaterial
                     mesh.geometry.computeVertexNormals()
 
                     resolve(mesh)
@@ -177,9 +177,9 @@ async function main() {
             const direction = new THREE.Vector3(dx, dy, dz).normalize()
             const arrow = new THREE.ArrowHelper(direction, origin, 2, 0xffff00)
             // offset in the direction of the normal vector
-            position[i] = x + direction.x
-            position[i + 1] = y + direction.y
-            position[i + 2] = z + direction.z
+            position[i] = x + direction.x/100
+            position[i + 1] = y + direction.y/100
+            position[i + 2] = z + direction.z/100
             // scene.add(arrow)
         }
 
@@ -208,7 +208,7 @@ async function main() {
 
         let lowRange = third
         let midRange = twoThird
-        let highRange = dataArray.length
+        let highRange = dataArray.length 
 
         // For edge case when we have 1 or 2 extra bins in the last range. 
         // So we increment midRange and decrement highRange to account for that.
@@ -236,7 +236,7 @@ async function main() {
         let eqOutput = ''; 
         for (let i = 0; i < dataArray.length; i++) {
             const freq = Math.min(1, dataArray[i] / 255); 
-            eqOutput += '|'.repeat(freq * 255 ) + '<br/>';
+            eqOutput += ')'.repeat(freq * 1000 ) + '<br/>';
         }
         
         document.getElementById('eqoutput').innerHTML = eqOutput;
