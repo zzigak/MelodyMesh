@@ -67,6 +67,12 @@ font-weight: 400;
 color:rgb(244, 242, 240);
 }
 
+label {
+font: 12px/12px 'Helvetica Neue', Helvetica, Arial, sans-serif; 
+font-weight: 400; 
+color:rgb(244, 242, 240);
+}
+
 .eq{
 font: 1.5px/1.5px 'Helvetica Neue', Helvetica, Arial, sans-serif; 
 font-weight: 300; 

@@ -35,6 +35,7 @@ function setAudio() {
         // Once a song is imported, render the scene
         main()
         audio.play()
+        document.getElementById('playpause').innerHTML = 'Pause'
     } else {
         alert("Invalid File Type!")
     }
@@ -69,6 +70,7 @@ document.getElementById('playpause').addEventListener('click', () => {
             main()
             audio.play()
             firstClick = 0;
+            document.getElementById('playpause').innerHTML = 'Pause'
         } else{
 
             audio.play()
@@ -314,8 +316,9 @@ async function main() {
         //const freqFactor = lowFreq * 0.1 * (1 + midFreq * 0.1); // Incorporate mid-frequency to adjust scaling
         const highFactor = highFreq *0.05;
         const midFactor = midFreq *0.05;
-        const lowFactor = lowFreq * 0.05;
+        const lowFactor = lowFreq * 0.05;    
 
+        console.log(lowx,lowy,lowz," ",midx,midy,midz," ",highx,highy,highz)
         
         for (let i = 0; i < positions.length; i += 3) {
             const x = originalVertexPositions[i];
@@ -338,10 +341,26 @@ async function main() {
                 mesh.geometry.attributes.normal.array[i + 1],
                 mesh.geometry.attributes.normal.array[i + 2]
             );
+
+            var lowx = parseFloat(document.getElementById('lowx').value);
+            var lowy = parseFloat(document.getElementById('lowy').value);
+            var lowz = parseFloat(document.getElementById('lowz').value);
+
+            var midx = parseFloat(document.getElementById('midx').value);
+            var midy = parseFloat(document.getElementById('midy').value);
+            var midz = parseFloat(document.getElementById('midz').value);
+
+            var highx = parseFloat(document.getElementById('highx').value);
+            var highy = parseFloat(document.getElementById('highy').value);
+            var highz = parseFloat(document.getElementById('highz').value);
             
-            positions[i] = x + normal.x * warpX * lowFactor * (20/(y+1)) * highFactor * (0.25*((y)**2));
-            positions[i + 1] = y + normal.y * warpY * (10/(y+1)) * midFactor * lowFactor * (10/(y+1));
-            positions[i + 2] = z + normal.z * warpZ * highFactor * (0.25*((y)**2));
+            var lowDist = 10 / ( (lowx-x)**2 + (lowy-y)**2 + (lowz-z)**2 )**0.5
+            var midDist = 10 / ( (midx-x)**2 + (midy-y)**2 + (midz-z)**2 )**0.5
+            var highDist = 10 / ( (highx-x)**2 + (highy-y)**2 + (highz-z)**2 )**0.5
+            
+            positions[i] = x + normal.x * warpX * lowFactor * lowDist**2 ;
+            positions[i + 1] = y + normal.y * warpY * midFactor * midDist**2 ;
+            positions[i + 2] = z + normal.z * warpZ * highFactor * highDist**2 ;
         }
         
         mesh.geometry.attributes.position.needsUpdate = true;
