@@ -11,7 +11,7 @@ body {
 	position: absolute;
 	left: 0;
 	top: 0;
-	width: 33%; 
+	width: 50%; 
 	height: 100%; 
 	background-color: rgba(255,255,255,0.0);
   opacity: 1;
@@ -68,7 +68,7 @@ color:rgb(244, 242, 240);
 }
 
 .eq{
-font: 1px/1px 'Helvetica Neue', Helvetica, Arial, sans-serif; 
+font: 1.5px/1.5px 'Helvetica Neue', Helvetica, Arial, sans-serif; 
 font-weight: 300; 
 color:rgb(244, 242, 240);
 }

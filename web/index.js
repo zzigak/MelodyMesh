@@ -105,10 +105,10 @@ async function main() {
     const near = 0.1
     const far = 100
     const camera = new THREE.PerspectiveCamera(fov, aspect, near, far)
-    camera.position.set(0, 10, 35)
+    camera.position.set(0, 20, 35)
 
     const controls = new OrbitControls(camera, canvas)
-    controls.target.set(0, 5, 0)
+    controls.target.set(0, 10, 0)
     controls.update()
 
     const wireframeMaterial = new THREE.MeshLambertMaterial({
@@ -137,7 +137,7 @@ async function main() {
         const intensity = 0.1
         const light = new THREE.DirectionalLight(color, intensity)
         light.position.set(50, 50, 50)
-        light.target.position.set(-5, 0, 0)
+        light.target.position.set(0, 0, 0)
         scene.add(light)
         scene.add(light.target)
     }
@@ -163,7 +163,7 @@ async function main() {
                     const bunny = root.children[0]
                     // transform since the original is tiny
                     bunny.scale.set(100, 100, 100)
-                    bunny.position.y = -5
+                    bunny.position.y = 0
                     // apply the transform and then reset
                     bunny.updateMatrix()
                     bunny.geometry.applyMatrix4(bunny.matrix)
@@ -267,7 +267,7 @@ async function main() {
         let eqOutput = ''; 
         for (let i = 0; i < dataArray.length; i++) {
             const freq = Math.min(1, dataArray[i] / 255); 
-            eqOutput += ')'.repeat(freq * 1000 ) + '<br/>';
+            eqOutput += '='.repeat(freq * 1000 * ((i**1.1+50)/255) ) + '<br/>';
         }
         
         document.getElementById('eqoutput').innerHTML = eqOutput;
@@ -339,9 +339,9 @@ async function main() {
                 mesh.geometry.attributes.normal.array[i + 2]
             );
             
-            positions[i] = x + normal.x * warpX *     (20/(y+15))**3;
-            positions[i + 1] = y + normal.y * warpY * (10/(y+15))**3;
-            positions[i + 2] = z + normal.z * warpZ * ((y+15)/15)**3;
+            positions[i] = x + normal.x * warpX * lowFactor * (20/(y+1)) * highFactor * (0.25*((y)**2));
+            positions[i + 1] = y + normal.y * warpY * (10/(y+1)) * midFactor * lowFactor * (10/(y+1));
+            positions[i + 2] = z + normal.z * warpZ * highFactor * (0.25*((y)**2));
         }
         
         mesh.geometry.attributes.position.needsUpdate = true;
