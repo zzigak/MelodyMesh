@@ -8,6 +8,16 @@ let bunny
 const audioInput = document.getElementById("song");
 audioInput.addEventListener("change", setAudio, false);
 
+const materialInput = document.getElementById("material-select")
+materialInput.addEventListener("change", e => onMaterialChange(e.target.options.selectedIndex))
+function onMaterialChange(selectedIndex = 0) {
+    const name = materialInput.options[selectedIndex].value
+    if (name === "wireframe")
+        bunny.material = new THREE.MeshLambertMaterial({ color: "#ffffff", wireframe: true })
+    else if (name === "normals")
+        bunny.material = new THREE.MeshNormalMaterial({ flatShading: true })
+}
+
 let noise = new SimplexNoise();
 const mainCanvas = document.getElementById("canvas");
 const label = document.getElementById("label");
@@ -36,8 +46,8 @@ function mapRange(val, inMin, inMax, outMin, outMax) {
     // Returns 50 - maps 25 from 10-50 range to 0-100
     var fr = (val - inMin) / (inMax - inMin);
     var delta = outMax - outMin;
-    return outMin + (fr * delta); 
-  }
+    return outMin + (fr * delta);
+}
 
 
 document.getElementById('playpause').addEventListener('click', () => {
@@ -82,11 +92,6 @@ async function main() {
     controls.target.set(0, 5, 0)
     controls.update()
 
-    const wireframeMaterial = new THREE.MeshLambertMaterial({
-        color: "#ffffff",
-        wireframe: true
-    });
-
     const scene = new THREE.Scene()
     scene.background = new THREE.Color("hsl(200, 15%, 20%)")
 
@@ -113,13 +118,13 @@ async function main() {
         scene.add(light.target)
     }
     {
-        const ambientLight = new THREE.AmbientLight( 0xcccccc, 0.1 );
-        scene.add( ambientLight );
+        const ambientLight = new THREE.AmbientLight(0xcccccc, 0.1);
+        scene.add(ambientLight);
     }
     {
-        const pointLight = new THREE.PointLight( 0xffffff, 0.7 );
-        camera.add( pointLight );
-        scene.add( camera );
+        const pointLight = new THREE.PointLight(0xffffff, 0.7);
+        camera.add(pointLight);
+        scene.add(camera);
     }
 
 
@@ -153,8 +158,7 @@ async function main() {
                     old.dispose()
 
                     console.log(bunny.material)
-                    var bunnyMaterial = new THREE.MeshNormalMaterial({ flatShading: true })
-                    const mesh = new THREE.Mesh(merged, wireframeMaterial ) //wireframeMaterial
+                    const mesh = new THREE.Mesh(merged)
                     mesh.geometry.computeVertexNormals()
 
                     resolve(mesh)
@@ -164,6 +168,7 @@ async function main() {
             }
         })
 
+        onMaterialChange()
         scene.add(bunny)
 
     }
@@ -179,9 +184,9 @@ async function main() {
             const direction = new THREE.Vector3(dx, dy, dz).normalize()
             const arrow = new THREE.ArrowHelper(direction, origin, 2, 0xffff00)
             // offset in the direction of the normal vector
-            position[i] = x + direction.x/100
-            position[i + 1] = y + direction.y/100
-            position[i + 2] = z + direction.z/100
+            position[i] = x + direction.x / 100
+            position[i + 1] = y + direction.y / 100
+            position[i + 2] = z + direction.z / 100
             // scene.add(arrow)
         }
 
@@ -205,12 +210,12 @@ async function main() {
 
         // split the frequency data into 3 segments
 
-        const third = Math.floor(dataArray.length / 3)	
+        const third = Math.floor(dataArray.length / 3)
         const twoThird = Math.floor(dataArray.length * 2 / 3)
 
         let lowRange = third
         let midRange = twoThird
-        let highRange = dataArray.length 
+        let highRange = dataArray.length
 
         // For edge case when we have 1 or 2 extra bins in the last range. 
         // So we increment midRange and decrement highRange to account for that.
@@ -224,26 +229,26 @@ async function main() {
         const lowMax = dataArray.slice(0, lowRange).reduce((a, b) => Math.max(a, b));
         // avg frequency in the middle range
         const midAvg = dataArray.slice(lowRange, midRange).reduce((a, b) => a + b) / (midRange - lowRange);
-        const midMax = dataArray.slice(lowRange,midRange).reduce((a,b)=> Math.max(a,b));
+        const midMax = dataArray.slice(lowRange, midRange).reduce((a, b) => Math.max(a, b));
         // loudest frequency in the upper range
         const uppMax = dataArray.slice(midRange, highRange).reduce((a, b) => Math.max(a, b));
- 
+
         const lowMaxFreq = lowMax  // / lowRange
-       // const midAvgFreq = midAvg
+        // const midAvgFreq = midAvg
         const midMaxFreq = midMax
         const upperMaxFreq = uppMax // / (highRange - midRange)
 
         console.log(lowMaxFreq, midMaxFreq, upperMaxFreq)
-        
-        let eqOutput = ''; 
+
+        let eqOutput = '';
         for (let i = 0; i < dataArray.length; i++) {
-            const freq = Math.min(1, dataArray[i] / 255); 
-            eqOutput += ')'.repeat(freq * 1000 ) + '<br/>';
+            const freq = Math.min(1, dataArray[i] / 255);
+            eqOutput += ')'.repeat(freq * 1000) + '<br/>';
         }
-        
+
         document.getElementById('eqoutput').innerHTML = eqOutput;
 
-        
+
         if (resizeRendererToDisplaySize(renderer)) {
             const canvas = renderer.domElement
             camera.aspect = canvas.clientWidth / canvas.clientHeight
@@ -253,11 +258,11 @@ async function main() {
         bunny.rotation.y += 0.001
 
         // TODO: map the frequency values to the desired output ranges? (see sample below)
-       //deformMeshWithAudio(bunny, lowMaxFreq, midAvgFreq, upperMaxFreq)
-       deformMeshWithAudio(bunny, 
-            mapRange(lowMaxFreq, 0, 255, 0, 10), 
+        //deformMeshWithAudio(bunny, lowMaxFreq, midAvgFreq, upperMaxFreq)
+        deformMeshWithAudio(bunny,
+            mapRange(lowMaxFreq, 0, 255, 0, 10),
             //mapRange(midAvgFreq, 0, 255, 0, 10),
-            mapRange(midMax,0,255,0,10),
+            mapRange(midMax, 0, 255, 0, 10),
             mapRange(upperMaxFreq, 0, 255, 0, 10)
         )
 
@@ -268,58 +273,58 @@ async function main() {
 
     function deformMeshWithAudio(mesh, lowFreq, midFreq, highFreq) {
         const geometry = mesh.geometry;
-    
+
         if (!geometry.attributes.position.array) {
-          return;
+            return;
         }
-    
+
         if (!originalVertexPositions) {
             // Store the original positions of the vertices so we can restore them later
             originalVertexPositions = mesh.geometry.attributes.position.array.slice();
         }
-    
+
         const positions = mesh.geometry.attributes.position.array;
-    
-        const time = window.performance.now()* 0.0001 * highFreq;
+
+        const time = window.performance.now() * 0.0001 * highFreq;
         const rf = 0.00001;
         //const freqFactor = lowFreq * 0.1 * (1 + midFreq * 0.1); // Incorporate mid-frequency to adjust scaling
-        const highFactor = highFreq *0.05;
-        const midFactor = midFreq *0.05;
+        const highFactor = highFreq * 0.05;
+        const midFactor = midFreq * 0.05;
         const lowFactor = lowFreq * 0.05;
 
         for (let i = 0; i < positions.length; i += 3) {
             const x = originalVertexPositions[i];
             const y = originalVertexPositions[i + 1];
             const z = originalVertexPositions[i + 2];
-    
+
             // Calculate the warp value with noise and frequency factor
             //let warp = Math.abs(noise.noise3D(x * rf * 4, y * rf * 6, z * rf * 7 + time) * freqFactor);
-    
+
             // Limit the warp value to a reasonable range?? TODO: play around with these nums
             //warp = Math.min(Math.max(warp, -5), 5); // Adjust the range as needed to prevent triangles from exploding
 
 
-            let warpX = Math.abs(noise.noise2D(x*rf+time, lowFactor));
-            let warpY = Math.abs(noise.noise2D(y*rf+time, midFactor));
-            let warpZ = Math.abs(noise.noise2D(z*rf+time, highFactor));
-    
+            let warpX = Math.abs(noise.noise2D(x * rf + time, lowFactor));
+            let warpY = Math.abs(noise.noise2D(y * rf + time, midFactor));
+            let warpZ = Math.abs(noise.noise2D(z * rf + time, highFactor));
+
             const normal = new THREE.Vector3(
                 mesh.geometry.attributes.normal.array[i],
                 mesh.geometry.attributes.normal.array[i + 1],
                 mesh.geometry.attributes.normal.array[i + 2]
             );
-    
+
             positions[i] = x + normal.x * warpX;
             positions[i + 1] = y + normal.y * warpY;
             positions[i + 2] = z + normal.z * warpZ;
         }
-        
+
         mesh.geometry.attributes.position.needsUpdate = true;
         mesh.geometry.computeVertexNormals();
     }
-    
-    
-      
+
+
+
 
     requestAnimationFrame(render)
 }
