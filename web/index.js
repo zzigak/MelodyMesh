@@ -12,7 +12,9 @@ let noise = new SimplexNoise();
 const mainCanvas = document.getElementById("canvas");
 const label = document.getElementById("label");
 
-let audio = new Audio("resources/upbeat_percussion.mp3");
+let audio = new Audio("resources/Nightmares On Wax - You Wish.mp3");
+
+var firstClick = 1;
 
 function setAudio() {
     audio.pause()
@@ -20,10 +22,19 @@ function setAudio() {
     if (audioFile.name.includes(".mp3")) {
         const audioURL = URL.createObjectURL(audioFile);
         audio = new Audio(audioURL);
+
+        const queryString = window.location.href;
+        const url = new URL(queryString);
+        var sec = url.searchParams.get("starttime");
+        console.log(sec)
+
+        audio.currentTime = sec
+
         console.log(audio)
 
         // Once a song is imported, render the scene
         main()
+        audio.play()
     } else {
         alert("Invalid File Type!")
     }
@@ -43,9 +54,27 @@ function mapRange(val, inMin, inMax, outMin, outMax) {
 document.getElementById('playpause').addEventListener('click', () => {
     console.log(audio)
     if (audio.paused) {
-        audio.play()
-        document.getElementById('playpause').innerHTML = 'Pause'
-        //label.style.display = "none"
+
+        if (firstClick ==1) {
+            const queryString = window.location.href;
+            const url = new URL(queryString);
+            var sec = url.searchParams.get("starttime");
+            console.log(sec)
+
+            audio.currentTime = sec
+
+            console.log(audio)
+
+            // Once a song is imported, render the scene
+            main()
+            audio.play()
+            firstClick = 0;
+        } else{
+
+            audio.play()
+            document.getElementById('playpause').innerHTML = 'Pause'
+            //label.style.display = "none"
+        }
     } else {
         audio.pause()
         document.getElementById('playpause').innerHTML = 'Play'
@@ -71,7 +100,7 @@ async function main() {
     renderer.outputColorSpace = THREE.SRGBColorSpace
     renderer.setSize(window.innerWidth, window.innerHeight)
 
-    const fov = 45
+    const fov = 35
     const aspect = 2  // the canvas default
     const near = 0.1
     const far = 100
@@ -107,7 +136,7 @@ async function main() {
         const color = 0xFFFFFF
         const intensity = 0.1
         const light = new THREE.DirectionalLight(color, intensity)
-        light.position.set(0, 10, 0)
+        light.position.set(50, 50, 50)
         light.target.position.set(-5, 0, 0)
         scene.add(light)
         scene.add(light.target)
@@ -117,7 +146,7 @@ async function main() {
         scene.add( ambientLight );
     }
     {
-        const pointLight = new THREE.PointLight( 0xffffff, 0.7 );
+        const pointLight = new THREE.PointLight( 0xffffff, 0.5 );
         camera.add( pointLight );
         scene.add( camera );
     }
@@ -233,7 +262,7 @@ async function main() {
         const midMaxFreq = midMax
         const upperMaxFreq = uppMax // / (highRange - midRange)
 
-        console.log(lowMaxFreq, midMaxFreq, upperMaxFreq)
+        //console.log(lowMaxFreq, midMaxFreq, upperMaxFreq)
         
         let eqOutput = ''; 
         for (let i = 0; i < dataArray.length; i++) {
@@ -287,6 +316,7 @@ async function main() {
         const midFactor = midFreq *0.05;
         const lowFactor = lowFreq * 0.05;
 
+        
         for (let i = 0; i < positions.length; i += 3) {
             const x = originalVertexPositions[i];
             const y = originalVertexPositions[i + 1];
@@ -308,10 +338,10 @@ async function main() {
                 mesh.geometry.attributes.normal.array[i + 1],
                 mesh.geometry.attributes.normal.array[i + 2]
             );
-    
-            positions[i] = x + normal.x * warpX;
-            positions[i + 1] = y + normal.y * warpY;
-            positions[i + 2] = z + normal.z * warpZ;
+            
+            positions[i] = x + normal.x * warpX *     (20/(y+15))**3;
+            positions[i + 1] = y + normal.y * warpY * (10/(y+15))**3;
+            positions[i + 2] = z + normal.z * warpZ * ((y+15)/15)**3;
         }
         
         mesh.geometry.attributes.position.needsUpdate = true;

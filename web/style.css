@@ -56,13 +56,13 @@ display: inline-block;
 }
 
 p {
-font: 18px/18px 'Helvetica Neue', Helvetica, Arial, sans-serif; 
+font: 12px/12px 'Helvetica Neue', Helvetica, Arial, sans-serif; 
 font-weight: 400; 
 color:rgb(244, 242, 240);
 }
 
 .label {
-font: 14px/14px 'Helvetica Neue', Helvetica, Arial, sans-serif; 
+font: 12px/12px 'Helvetica Neue', Helvetica, Arial, sans-serif; 
 font-weight: 400; 
 color:rgb(244, 242, 240);
 }
@@ -75,7 +75,7 @@ color:rgb(244, 242, 240);
 
 
 .button {
-	font: 14px/14px 'Helvetica Neue', Helvetica, Arial, sans-serif; 
+	font: 12px/12px 'Helvetica Neue', Helvetica, Arial, sans-serif; 
   font-weight: 400; 
   transition-duration: 0.4s;
   background-color: black;
