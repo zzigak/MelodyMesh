@@ -11,6 +11,16 @@ var dotHigh
 const audioInput = document.getElementById("song");
 audioInput.addEventListener("change", setAudio, false);
 
+const materialInput = document.getElementById("material-select")
+materialInput.addEventListener("change", e => onMaterialChange(e.target.options.selectedIndex))
+function onMaterialChange(selectedIndex = 0) {
+    const name = materialInput.options[selectedIndex].value
+    if (name === "wireframe")
+        bunny.material = new THREE.MeshLambertMaterial({ color: "#ffffff", wireframe: true })
+    else if (name === "normals")
+        bunny.material = new THREE.MeshNormalMaterial({ flatShading: true })
+}
+
 let noise = new SimplexNoise();
 const mainCanvas = document.getElementById("canvas");
 const label = document.getElementById("label");
