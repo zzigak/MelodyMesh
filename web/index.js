@@ -233,8 +233,7 @@ async function main() {
                     old.dispose()
 
                     console.log(bunny.material)
-                    var bunnyMaterial = new THREE.MeshNormalMaterial({ flatShading: true })
-                    const mesh = new THREE.Mesh(merged, wireframeMaterial ) //wireframeMaterial
+                    const mesh = new THREE.Mesh(merged) //wireframeMaterial
                     mesh.geometry.computeVertexNormals()
 
                     resolve(mesh)
@@ -244,6 +243,7 @@ async function main() {
             }
         })
 
+        onMaterialChange()
         scene.add(bunny)
 
     }
