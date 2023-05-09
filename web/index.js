@@ -198,10 +198,11 @@ async function main() {
         bunny = await new Promise((resolve, reject) => {
             try {
                 const loader = new OBJLoader()
-                loader.load('resources/bunny.obj', root => {
+                loader.load('resources/bunny.obj', root => { // bunny.obj
                     // actually get the mesh
                     const bunny = root.children[0]
                     // transform since the original is tiny
+
                     bunny.scale.set(100, 100, 100)
                     bunny.position.y = 0
                     // apply the transform and then reset
