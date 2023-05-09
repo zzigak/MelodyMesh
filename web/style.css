@@ -93,3 +93,83 @@ color:rgb(244, 242, 240);
   background-color: rgb(244, 242, 240); 
   color: white;
 }
+
+
+
+
+slidecontainer {
+  width: 100%;
+  opacity: 0.5;
+}
+
+.slider {
+  -webkit-appearance: none;
+  width: 50%;
+  height: 15px;
+  border-radius: 4px;
+  background: #000000;
+  outline: none;
+  opacity: 0.3;
+  -webkit-transition: .2s;
+  transition: opacity .2s;
+}
+
+.slider:hover {
+  opacity: 1;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 4px;
+  height: 16px;
+  margin-top: -7px;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.slider::-moz-range-thumb {
+  width: 4px;
+  height: 16px;
+  margin-top: -7px;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+input[type='range']::-webkit-slider-runnable-track {
+  height: 2px;
+  margin: 10px;
+  cursor: pointer;
+  background: #ffffff;
+}
+
+input[type='range']::-moz-range-track {
+  height: 2px;
+  margin: 10px;
+  cursor: pointer;
+  background: #ffffff;
+  opacity: 1.0;
+}
+
+input[type='range']::-ms-track {
+  height: 2px;
+  margin: 10px;
+  cursor: pointer;
+  color: transparent;
+  background: #ffffff;
+  opacity: 1.0;
+}
+
+input[type='range']::-ms-fill-lower {
+  background: transparent;
+  opacity:1.0;
+}
+
+
+
+
+
+
+
+
+
