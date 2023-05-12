@@ -72,19 +72,5 @@ export class Dcel {
             callback(e.twin.face.index);
         });
     }
-
-    forAdjacentVertices(faceIndex, callback) {
-        const adjacentVertices = [];
-        this.forEdges(this.faces[faceIndex], e => {
-            const faceVertices = [];
-            this.forEdges(e.twin.face, edge => {
-                faceVertices.push(edge.head().point);
-            });
-            adjacentVertices.push(faceVertices);
-            callback(e.twin.face.index);
-        });
-        return adjacentVertices;
-    }
-    
 }
 

@@ -8,6 +8,9 @@ let bunny
 
 let meshDcel
 
+let highlightedFaces
+
+let highlightedMesh
 
 const audioInput = document.getElementById("song");
 audioInput.addEventListener("change", setAudio, false);
@@ -156,8 +159,6 @@ async function main() {
     }
 
 
-
-
     {
         bunny = await new Promise((resolve, reject) => {
             try {
@@ -195,6 +196,19 @@ async function main() {
                     const start = Date.now();
                     meshDcel = new Dcel(mesh.geometry);
                     console.log('build dcel took:', Date.now() - start, 'ms for ', meshDcel.faces.length, 'faces');
+                    
+                    // let's highlight the first 50 faces
+                    highlightedFaces = meshDcel.faces.slice(0, 50);
+
+                    // then create a new geometry from the highlighted faces
+                    const highlightedGeometry = facesToGeometry(highlightedFaces);
+
+                    // Assign a new material to the highlighted faces
+                    const highlightedMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+
+                    // Create a new mesh with the highlighted geometry and material, then add it to the scene
+                    highlightedMesh = new THREE.Mesh(highlightedGeometry, highlightedMaterial);
+                    scene.add(highlightedMesh);
 
                     
                     resolve(mesh)
@@ -290,7 +304,8 @@ async function main() {
             camera.updateProjectionMatrix()
         }
 
-        bunny.rotation.y += 0.001
+        // bunny.rotation.y += 0.001
+        // highlightedMesh.y += 0.001
 
         // TODO: map the frequency values to the desired output ranges? (see sample below)
        //deformMeshWithAudio(bunny, lowMaxFreq, midAvgFreq, upperMaxFreq)
@@ -357,7 +372,48 @@ async function main() {
         
         mesh.geometry.attributes.position.needsUpdate = true;
         mesh.geometry.computeVertexNormals();
-    }      
+    }
+    
+    function getFaceVertices(face) {
+        const vertices = [];
+        const startEdge = face.getEdge(0);
+        let currentEdge = startEdge;
+      
+        do {
+          vertices.push(currentEdge.head().point);
+          currentEdge = currentEdge.next;
+        } while (currentEdge !== startEdge);
+      
+        return vertices;
+      }
+
+    function facesToGeometry(faces) {
+    const positions = [];
+    const indices = [];
+    
+    faces.forEach(face => {
+        const faceVertices = getFaceVertices(face);
+        faceVertices.forEach(vertex => {
+        positions.push(vertex.x, vertex.y, vertex.z);
+        });
+    
+        for (let i = 1; i < faceVertices.length - 1; i++) {
+        indices.push(
+            positions.length / 3 - faceVertices.length,
+            positions.length / 3 - faceVertices.length + i,
+            positions.length / 3 - faceVertices.length + i + 1
+        );
+        }
+    });
+    
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    geometry.setIndex(indices);
+    
+    return geometry;
+    }
+      
+      
 
     requestAnimationFrame(render)
 }
