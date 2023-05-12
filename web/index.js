@@ -2,24 +2,15 @@ import * as THREE from "three"
 import { OrbitControls } from "three/addons/controls/OrbitControls.js"
 import { OBJLoader } from "three/addons/loaders/OBJLoader.js"
 import * as BufferGeometryUtils from "three/addons/utils/BufferGeometryUtils.js"
+import { Dcel } from "./three-halfedge-dcel/Dcel.js"
 
 let bunny
-var dotLow
-var dotMid
-var dotHigh
+
+let meshDcel
+
 
 const audioInput = document.getElementById("song");
 audioInput.addEventListener("change", setAudio, false);
-
-const materialInput = document.getElementById("material-select")
-materialInput.addEventListener("change", e => onMaterialChange(e.target.options.selectedIndex))
-function onMaterialChange(selectedIndex = 0) {
-    const name = materialInput.options[selectedIndex].value
-    if (name === "wireframe")
-        bunny.material = new THREE.MeshLambertMaterial({ color: "#ffffff", wireframe: true })
-    else if (name === "normals")
-        bunny.material = new THREE.MeshNormalMaterial({ flatShading: true })
-}
 
 let noise = new SimplexNoise();
 const mainCanvas = document.getElementById("canvas");
@@ -48,7 +39,6 @@ function setAudio() {
         // Once a song is imported, render the scene
         main()
         audio.play()
-        document.getElementById('playpause').innerHTML = 'Pause'
     } else {
         alert("Invalid File Type!")
     }
@@ -83,7 +73,6 @@ document.getElementById('playpause').addEventListener('click', () => {
             main()
             audio.play()
             firstClick = 0;
-            document.getElementById('playpause').innerHTML = 'Pause'
         } else{
 
             audio.play()
@@ -168,51 +157,16 @@ async function main() {
 
 
 
-    {
-
-        var lowx = parseFloat(document.getElementById('lowx').value);
-        var lowy = parseFloat(document.getElementById('lowy').value);
-        var lowz = parseFloat(document.getElementById('lowz').value);
-
-        var midx = parseFloat(document.getElementById('midx').value);
-        var midy = parseFloat(document.getElementById('midy').value);
-        var midz = parseFloat(document.getElementById('midz').value);
-
-        var highx = parseFloat(document.getElementById('highx').value);
-        var highy = parseFloat(document.getElementById('highy').value);
-        var highz = parseFloat(document.getElementById('highz').value);
-
-        var dotGeometryLow = new THREE.BufferGeometry();
-        var dotGeometryMid = new THREE.BufferGeometry();
-        var dotGeometryHigh = new THREE.BufferGeometry();
-
-        dotGeometryLow.setAttribute('position', new THREE.BufferAttribute(new Float32Array([lowx,lowy,lowz]), 3));
-        dotGeometryMid.setAttribute('position', new THREE.BufferAttribute(new Float32Array([midx,midy,midz]), 3));
-        dotGeometryHigh.setAttribute('position', new THREE.BufferAttribute(new Float32Array([highx,highy,highz]), 3));
-
-        dotLow = new THREE.Points(dotGeometryLow, new THREE.PointsMaterial({ size: 1, color: 0x667a7a }));
-        dotMid = new THREE.Points(dotGeometryMid, new THREE.PointsMaterial({ size: 1, color: 0x8fa8a8 }));
-        dotHigh = new THREE.Points(dotGeometryHigh, new THREE.PointsMaterial({ size: 1, color: 0xbcd1d1 }));
-        scene.add(dotLow);
-        scene.add(dotMid);
-        scene.add(dotHigh);
-        dotLow.geometry.attributes.position.needsUpdate = true;
-        dotMid.geometry.attributes.position.needsUpdate = true;
-        dotHigh.geometry.attributes.position.needsUpdate = true;
-
-    }
-
-
 
     {
         bunny = await new Promise((resolve, reject) => {
             try {
                 const loader = new OBJLoader()
-                loader.load('resources/bunny.obj', root => { // bunny.obj
+                loader.load('resources/bunny.obj', root => {
                     // actually get the mesh
                     const bunny = root.children[0]
-                    // transform since the original is tiny
 
+                    // transform since the original is tiny
                     bunny.scale.set(100, 100, 100)
                     bunny.position.y = 0
                     // apply the transform and then reset
@@ -233,9 +187,16 @@ async function main() {
                     old.dispose()
 
                     console.log(bunny.material)
-                    const mesh = new THREE.Mesh(merged) //wireframeMaterial
+                    var bunnyMaterial = new THREE.MeshNormalMaterial({ flatShading: true })
+                    const mesh = new THREE.Mesh(merged, wireframeMaterial ) //wireframeMaterial
                     mesh.geometry.computeVertexNormals()
 
+                    // Process the bunny into Half Edge Data Structure
+                    const start = Date.now();
+                    meshDcel = new Dcel(mesh.geometry);
+                    console.log('build dcel took:', Date.now() - start, 'ms for ', meshDcel.faces.length, 'faces');
+
+                    
                     resolve(mesh)
                 })
             } catch (error) {
@@ -243,7 +204,6 @@ async function main() {
             }
         })
 
-        onMaterialChange()
         scene.add(bunny)
 
     }
@@ -330,11 +290,11 @@ async function main() {
             camera.updateProjectionMatrix()
         }
 
-        //bunny.rotation.y += 0.001
+        bunny.rotation.y += 0.001
 
         // TODO: map the frequency values to the desired output ranges? (see sample below)
        //deformMeshWithAudio(bunny, lowMaxFreq, midAvgFreq, upperMaxFreq)
-       deformMeshWithAudio(bunny, dotLow, dotMid, dotHigh,
+       deformMeshWithAudio(bunny, 
             mapRange(lowMaxFreq, 0, 255, 0, 10), 
             //mapRange(midAvgFreq, 0, 255, 0, 10),
             mapRange(midMax,0,255,0,10),
@@ -346,7 +306,7 @@ async function main() {
         requestAnimationFrame(render)
     }
 
-    function deformMeshWithAudio(mesh, dotLow, dotMid, dotHigh, lowFreq, midFreq, highFreq) {
+    function deformMeshWithAudio(mesh, lowFreq, midFreq, highFreq) {
         const geometry = mesh.geometry;
     
         if (!geometry.attributes.position.array) {
@@ -365,8 +325,7 @@ async function main() {
         //const freqFactor = lowFreq * 0.1 * (1 + midFreq * 0.1); // Incorporate mid-frequency to adjust scaling
         const highFactor = highFreq *0.05;
         const midFactor = midFreq *0.05;
-        const lowFactor = lowFreq * 0.05;    
-
+        const lowFactor = lowFreq * 0.05;
 
         
         for (let i = 0; i < positions.length; i += 3) {
@@ -390,56 +349,15 @@ async function main() {
                 mesh.geometry.attributes.normal.array[i + 1],
                 mesh.geometry.attributes.normal.array[i + 2]
             );
-
             
-
-            var lowx = parseFloat(document.getElementById('lowx').value);
-            var lowy = parseFloat(document.getElementById('lowy').value);
-            var lowz = parseFloat(document.getElementById('lowz').value);
-
-            var midx = parseFloat(document.getElementById('midx').value);
-            var midy = parseFloat(document.getElementById('midy').value);
-            var midz = parseFloat(document.getElementById('midz').value);
-
-            var highx = parseFloat(document.getElementById('highx').value);
-            var highy = parseFloat(document.getElementById('highy').value);
-            var highz = parseFloat(document.getElementById('highz').value);
-
-            dotLow.geometry.attributes.position.array[0] = lowx;
-            dotLow.geometry.attributes.position.array[1] = lowy;
-            dotLow.geometry.attributes.position.array[2] = lowz;
-
-            dotMid.geometry.attributes.position.array[0] = midx;
-            dotMid.geometry.attributes.position.array[1] = midy;
-            dotMid.geometry.attributes.position.array[2] = midz;
-
-            dotHigh.geometry.attributes.position.array[0] = highx;
-            dotHigh.geometry.attributes.position.array[1] = highy;
-            dotHigh.geometry.attributes.position.array[2] = highz;
-
-            
-            var lowDist = ( (lowx-x)**2 + (lowy-y)**2 + (lowz-z)**2 )**0.5;
-            var midDist = ( (midx-x)**2 + (midy-y)**2 + (midz-z)**2 )**0.5;
-            var highDist = ( (highx-x)**2 + (highy-y)**2 + (highz-z)**2 )**0.5;
-            var totalDist = lowDist + midDist + highDist;
-            var lowDistInv = 5 / lowDist;
-            var midDistInv = 5 / midDist;
-            var highDistInv = 5 / highDist;
-            
-            positions[i] = x + normal.x  * (lowFactor * lowDistInv + midFactor * midDistInv + highFactor * highDistInv) ;
-            positions[i + 1] = y + normal.y * (lowFactor * lowDistInv + midFactor * midDistInv + highFactor * highDistInv) ;
-            positions[i + 2] = z + normal.z * (lowFactor * lowDistInv + midFactor * midDistInv + highFactor * highDistInv) ;
+            positions[i] = x + normal.x * warpX * lowFactor * (20/(y+1)) * highFactor * (0.25*((y)**2));
+            positions[i + 1] = y + normal.y * warpY * (10/(y+1)) * midFactor * lowFactor * (10/(y+1));
+            positions[i + 2] = z + normal.z * warpZ * highFactor * (0.25*((y)**2));
         }
         
         mesh.geometry.attributes.position.needsUpdate = true;
-        dotLow.geometry.attributes.position.needsUpdate = true;
-        dotMid.geometry.attributes.position.needsUpdate = true;
-        dotHigh.geometry.attributes.position.needsUpdate = true;
         mesh.geometry.computeVertexNormals();
-    }
-    
-    
-      
+    }      
 
     requestAnimationFrame(render)
 }
