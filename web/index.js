@@ -197,8 +197,14 @@ async function main() {
                     meshDcel = new Dcel(mesh.geometry);
                     console.log('build dcel took:', Date.now() - start, 'ms for ', meshDcel.faces.length, 'faces');
                     
-                    // let's highlight the first 50 faces
-                    highlightedFaces = meshDcel.faces.slice(0, 50);
+                    // let's highlight the neighbor face of the first index
+                    //highlightedFaces = meshDcel.oneRingFacesOnVertex(meshDcel.vertices[0])
+                    console.log('first vertex: ', meshDcel.vertices[0])
+                    console.log('outgoing halfedges from first vertex: ', meshDcel.outgoingHalfEdgesOnVertex(meshDcel.vertices[0]))
+                    console.log('neighbor vertices from first vertex: ', meshDcel.verticesOnVertex(meshDcel.vertices[0]))
+                    console.log('N ring neighbor face of first vertex: ', meshDcel.nNeighborFacesOnVertex(meshDcel.vertices[0], 2))
+
+                    highlightedFaces = meshDcel.nNeighborFacesOnVertex(meshDcel.vertices[0], 2)
 
                     // then create a new geometry from the highlighted faces
                     const highlightedGeometry = facesToGeometry(highlightedFaces);
@@ -373,7 +379,7 @@ async function main() {
         mesh.geometry.attributes.position.needsUpdate = true;
         mesh.geometry.computeVertexNormals();
     }
-    
+
     function getFaceVertices(face) {
         const vertices = [];
         const startEdge = face.getEdge(0);
@@ -388,23 +394,23 @@ async function main() {
       }
 
     function facesToGeometry(faces) {
-    const positions = [];
-    const indices = [];
-    
-    faces.forEach(face => {
-        const faceVertices = getFaceVertices(face);
-        faceVertices.forEach(vertex => {
-        positions.push(vertex.x, vertex.y, vertex.z);
+        const positions = [];
+        const indices = [];
+        
+        faces.forEach(face => {
+            const faceVertices = getFaceVertices(face);
+            faceVertices.forEach(vertex => {
+            positions.push(vertex.x, vertex.y, vertex.z);
+            });
+        
+            for (let i = 1; i < faceVertices.length - 1; i++) {
+            indices.push(
+                positions.length / 3 - faceVertices.length,
+                positions.length / 3 - faceVertices.length + i,
+                positions.length / 3 - faceVertices.length + i + 1
+            );
+            }
         });
-    
-        for (let i = 1; i < faceVertices.length - 1; i++) {
-        indices.push(
-            positions.length / 3 - faceVertices.length,
-            positions.length / 3 - faceVertices.length + i,
-            positions.length / 3 - faceVertices.length + i + 1
-        );
-        }
-    });
     
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));

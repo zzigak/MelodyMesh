@@ -12,7 +12,8 @@ export class Dcel {
         this.vertices = Array.from({ length: geometry.attributes.position.count }, (_, i) => {
             return {
                 point: new THREE.Vector3().fromBufferAttribute(geometry.attributes.position, i),
-                index: i
+                index: i,
+                halfEdge: null
             };
         });
 
@@ -50,9 +51,19 @@ export class Dcel {
                         hashToEdge[hash] = e;
                     }
                 }
+                
+                // TODO(NHAN): make half edge reference for vertex
+                // Give each vertex a single half-edge reference
+                // If twin exist, sets twin's half-edge as well
+                if (!this.vertices[e.head().index].halfEdge) {
+                    this.vertices[e.head().index].halfEdge = e;
+                    if (e.twin) {
+                        this.vertices[e.twin.head().index].halfEdge = e.twin;
+                    }
+                }
+                
             });
         });
-
     }
 
     forEdges(face, callback) {
@@ -72,5 +83,63 @@ export class Dcel {
             callback(e.twin.face.index);
         });
     }
+
+    outgoingHalfEdgesOnVertex(v) {
+        const outHalfedges = [];
+        let first = v.halfEdge;
+        let he = v.halfEdge;
+
+        while (true) {
+            if (outHalfedges.includes(he)) break;
+            outHalfedges.push(he);
+
+            he = he.twin.next;
+            if (first == he) break;
+        }
+        return outHalfedges;
+    }
+    
+    // Return one-ring neighbors of input vertex, not including input vertex itself
+    verticesOnVertex(v) {
+        const vertices = [];
+
+        const outgoingHalfEdges = this.outgoingHalfEdgesOnVertex(v);
+        for (let he of outgoingHalfEdges) {
+            vertices.push(he.head());
+        }
+        return vertices;
+    }
+
+    // Return neighbor Faces associated with the one-ring neighbors of input vertex
+    oneRingFacesOnVertex(v) {
+        const neighborFaces = [];
+
+        const outgoingHalfEdges = this.outgoingHalfEdgesOnVertex(v);
+
+        outgoingHalfEdges.forEach(he => {
+            neighborFaces.push(he.face);
+        });
+        return neighborFaces
+    }
+
+    // Return neighbor Faces associated with the N-th ring neighbors of input vertex
+    nNeighborFacesOnVertex(vertex, n) { 
+    let neighbors = [];
+    let currentFace = this.oneRingFacesOnVertex(vertex)[0];   
+    let nextRing = [];
+    
+    for (let i = 0; i < n; i++) {
+        let faces = this.oneRingFacesOnVertex(currentFace.edge.vertex);
+        for (let f of faces) {   
+            if (!neighbors.includes(f)) {
+                neighbors.push(f);
+                nextRing.push(f);  
+            }
+        }
+        currentFace = nextRing.pop();      
+    }
+    
+    return neighbors;
+    } 
 }
 
