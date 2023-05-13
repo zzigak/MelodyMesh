@@ -118,7 +118,7 @@ async function main() {
     const near = 0.1
     const far = 100
     const camera = new THREE.PerspectiveCamera(fov, aspect, near, far)
-    camera.position.set(0, 20, 35)
+    camera.position.set(-30, 0, 30)
 
     const controls = new OrbitControls(camera, canvas)
     controls.target.set(0, 0, 0)
@@ -336,9 +336,9 @@ async function main() {
         const time = window.performance.now()* 0.0001 * highFreq;
         const rf = 0.00001;
         //const freqFactor = lowFreq * 0.1 * (1 + midFreq * 0.1); // Incorporate mid-frequency to adjust scaling
-        const highFactor = highFreq *0.05;
-        const midFactor = midFreq *0.05;
-        const lowFactor = lowFreq * 0.05;    
+        const highFactor = highFreq *0.05-0.1;
+        const midFactor = midFreq *0.05-0.1;
+        const lowFactor = lowFreq * 0.05-0.1;    
 
 
         
@@ -430,23 +430,36 @@ async function main() {
             var phi = Math.atan((tempy-5)/tempx);
             var theta = Math.acos(tempz/r);
             
-            var m = parseFloat(document.getElementById('m').value);
-            var l = parseFloat(document.getElementById('l').value);
-            document.getElementById("m").max = l;
-            document.getElementById("mlabel").innerHTML = "m: ".concat(m);
-            document.getElementById("llabel").innerHTML = "l: ".concat(l);
+            //
 
-            var harmonic =  (SH( l, m, theta, phi ))*(r**0.5);
+            var m1 = parseFloat(document.getElementById('m1').value);
+            var l1 = parseFloat(document.getElementById('l1').value);
+            document.getElementById("m1").max = l1;
+            document.getElementById("m1label").innerHTML = "m1: ".concat(m1);
+            document.getElementById("l1label").innerHTML = "l1: ".concat(l1);
 
-            /*
-            positions[i] = x + normal.x  * (lowFactor * lowDistInv + midFactor * midDistInv + highFactor * highDistInv) ;
-            positions[i + 1] = y + normal.y * (lowFactor * lowDistInv + midFactor * midDistInv + highFactor * highDistInv) ;
-            positions[i + 2] = z + normal.z * (lowFactor * lowDistInv + midFactor * midDistInv + highFactor * highDistInv) ;
-            */
-            positions[i] = x + normal.x  * (midFactor * harmonic) ;
-            positions[i + 1] = y + normal.y * (midFactor * harmonic) ;
-            positions[i + 2] = z + normal.z * (midFactor * harmonic) ;
+            var m2 = parseFloat(document.getElementById('m2').value);
+            var l2 = parseFloat(document.getElementById('l2').value);
+            document.getElementById("m2").max = l2;
+            document.getElementById("m2label").innerHTML = "m2: ".concat(m2);
+            document.getElementById("l2label").innerHTML = "l2: ".concat(l2);
 
+            var m3 = parseFloat(document.getElementById('m3').value);
+            var l3 = parseFloat(document.getElementById('l3').value);
+            document.getElementById("m3").max = l3;
+            document.getElementById("m3label").innerHTML = "m3: ".concat(m3);
+            document.getElementById("l3label").innerHTML = "l3: ".concat(l3);
+
+            //var harmonic = SH( l, m, theta, phi );
+
+            var lowharmonic =  (SH( l1, m1, theta, phi ))*(r**0.25);
+            var midharmonic =  (SH( l2, m2, theta, phi ))*(r**0.25);
+            var highharmonic =  (SH( l3, m3, theta, phi ))*(r**0.25);
+
+            positions[i] = x + normal.x  * (lowFactor * lowharmonic + midFactor * midharmonic + highFactor * highharmonic) ;
+            positions[i + 1] = y + normal.y * (lowFactor * lowharmonic + midFactor * midharmonic + highFactor * highharmonic) ;
+            positions[i + 2] = z + normal.z * (lowFactor * lowharmonic + midFactor * midharmonic + highFactor * highharmonic) ;
+            
         }
         
         mesh.geometry.attributes.position.needsUpdate = true;
