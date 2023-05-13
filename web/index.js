@@ -4,9 +4,7 @@ import { OBJLoader } from "three/addons/loaders/OBJLoader.js"
 import * as BufferGeometryUtils from "three/addons/utils/BufferGeometryUtils.js"
 
 let bunny
-var dotLow
-var dotMid
-var dotHigh
+
 
 const audioInput = document.getElementById("song");
 audioInput.addEventListener("change", setAudio, false);
@@ -123,7 +121,7 @@ async function main() {
     camera.position.set(0, 20, 35)
 
     const controls = new OrbitControls(camera, canvas)
-    controls.target.set(0, 10, 0)
+    controls.target.set(0, 0, 0)
     controls.update()
 
     const wireframeMaterial = new THREE.MeshLambertMaterial({
@@ -169,51 +167,15 @@ async function main() {
 
 
     {
-
-        var lowx = parseFloat(document.getElementById('lowx').value);
-        var lowy = parseFloat(document.getElementById('lowy').value);
-        var lowz = parseFloat(document.getElementById('lowz').value);
-
-        var midx = parseFloat(document.getElementById('midx').value);
-        var midy = parseFloat(document.getElementById('midy').value);
-        var midz = parseFloat(document.getElementById('midz').value);
-
-        var highx = parseFloat(document.getElementById('highx').value);
-        var highy = parseFloat(document.getElementById('highy').value);
-        var highz = parseFloat(document.getElementById('highz').value);
-
-        var dotGeometryLow = new THREE.BufferGeometry();
-        var dotGeometryMid = new THREE.BufferGeometry();
-        var dotGeometryHigh = new THREE.BufferGeometry();
-
-        dotGeometryLow.setAttribute('position', new THREE.BufferAttribute(new Float32Array([lowx,lowy,lowz]), 3));
-        dotGeometryMid.setAttribute('position', new THREE.BufferAttribute(new Float32Array([midx,midy,midz]), 3));
-        dotGeometryHigh.setAttribute('position', new THREE.BufferAttribute(new Float32Array([highx,highy,highz]), 3));
-
-        dotLow = new THREE.Points(dotGeometryLow, new THREE.PointsMaterial({ size: 1, color: 0x667a7a }));
-        dotMid = new THREE.Points(dotGeometryMid, new THREE.PointsMaterial({ size: 1, color: 0x8fa8a8 }));
-        dotHigh = new THREE.Points(dotGeometryHigh, new THREE.PointsMaterial({ size: 1, color: 0xbcd1d1 }));
-        scene.add(dotLow);
-        scene.add(dotMid);
-        scene.add(dotHigh);
-        dotLow.geometry.attributes.position.needsUpdate = true;
-        dotMid.geometry.attributes.position.needsUpdate = true;
-        dotHigh.geometry.attributes.position.needsUpdate = true;
-
-    }
-
-
-
-    {
         bunny = await new Promise((resolve, reject) => {
             try {
                 const loader = new OBJLoader()
-                loader.load('resources/bunny.obj', root => { // bunny.obj
+                loader.load('resources/sphere5.obj', root => { // bunny.obj
                     // actually get the mesh
                     const bunny = root.children[0]
                     // transform since the original is tiny
 
-                    bunny.scale.set(100, 100, 100)
+                    bunny.scale.set(1, 1, 1)
                     bunny.position.y = 0
                     // apply the transform and then reset
                     bunny.updateMatrix()
@@ -252,8 +214,15 @@ async function main() {
         const normal = bunny.geometry.attributes.normal.array
         const position = bunny.geometry.attributes.position.array
 
+        var meanx = 0;
+        var meany = 0;
+        var meanz = 0;
+
         for (let i = 0; i < normal.length; i += 3) {
             const [x, y, z] = position.slice(i, i + 3)
+            meanx += x
+            meany += y
+            meanz += z
             const [dx, dy, dz] = normal.slice(i, i + 3)
             const origin = new THREE.Vector3(x, y, z)
             const direction = new THREE.Vector3(dx, dy, dz).normalize()
@@ -264,6 +233,10 @@ async function main() {
             position[i + 2] = z + direction.z/100
             // scene.add(arrow)
         }
+
+        meanx = meanx / normal.length;
+        meany = meany / normal.length;
+        meanz = meanz / normal.length;
 
         // mark as dirty so that the positions get re-rendered
         bunny.geometry.attributes.position.needsUpdate = true
@@ -334,7 +307,7 @@ async function main() {
 
         // TODO: map the frequency values to the desired output ranges? (see sample below)
        //deformMeshWithAudio(bunny, lowMaxFreq, midAvgFreq, upperMaxFreq)
-       deformMeshWithAudio(bunny, dotLow, dotMid, dotHigh,
+       deformMeshWithAudio(bunny, 
             mapRange(lowMaxFreq, 0, 255, 0, 10), 
             //mapRange(midAvgFreq, 0, 255, 0, 10),
             mapRange(midMax,0,255,0,10),
@@ -346,7 +319,7 @@ async function main() {
         requestAnimationFrame(render)
     }
 
-    function deformMeshWithAudio(mesh, dotLow, dotMid, dotHigh, lowFreq, midFreq, highFreq) {
+    function deformMeshWithAudio(mesh, lowFreq, midFreq, highFreq) {
         const geometry = mesh.geometry;
     
         if (!geometry.attributes.position.array) {
@@ -393,48 +366,91 @@ async function main() {
 
             
 
-            var lowx = parseFloat(document.getElementById('lowx').value);
-            var lowy = parseFloat(document.getElementById('lowy').value);
-            var lowz = parseFloat(document.getElementById('lowz').value);
 
-            var midx = parseFloat(document.getElementById('midx').value);
-            var midy = parseFloat(document.getElementById('midy').value);
-            var midz = parseFloat(document.getElementById('midz').value);
+            //spherical harmonics formulas adapted from https://patapom.com/blog/SHPortal/
 
-            var highx = parseFloat(document.getElementById('highx').value);
-            var highy = parseFloat(document.getElementById('highy').value);
-            var highz = parseFloat(document.getElementById('highz').value);
+            function factorial(n, r = 1) {
+              while (n > 0) r *= n--;
+              return r;
+            }
 
-            dotLow.geometry.attributes.position.array[0] = lowx;
-            dotLow.geometry.attributes.position.array[1] = lowy;
-            dotLow.geometry.attributes.position.array[2] = lowz;
+            function K( l, m ) {
+                var temp = ((2.0*l+1.0)*factorial(l-m)) / (4.0*Math.PI*factorial(l+m));   // Here, you can use a precomputed table for factorials
+                return (temp)**0.5;
+             }
 
-            dotMid.geometry.attributes.position.array[0] = midx;
-            dotMid.geometry.attributes.position.array[1] = midy;
-            dotMid.geometry.attributes.position.array[2] = midz;
+            function P( l, m, cosTheta ) {
+                var pmm = 1.0;
 
-            dotHigh.geometry.attributes.position.array[0] = highx;
-            dotHigh.geometry.attributes.position.array[1] = highy;
-            dotHigh.geometry.attributes.position.array[2] = highz;
+                if ( m > 0 ) {
+                    var somx2 = ((1.0-cosTheta)*(1.0+cosTheta))**0.5;
+                    var fact = 1.0;
+                    for ( var iter=1; iter<=m; iter++ ) {
+                        pmm *= (-fact) * somx2;
+                        fact += 2.0;
+                    }
+                }
 
+                if( l == m ) {
+                    return pmm;
+                }
+
+                var pmmp1 = cosTheta * (2.0*m+1.0) * pmm;
+
+                if ( l == m+1 ) {
+                    return pmmp1;
+                }
+
+                var pll = 0.0;
+                for ( var ll=m+2; ll<=l; ll++ ) {
+                    pll = ( (2.0*ll-1.0)*cosTheta*pmmp1-(ll+m-1.0)*pmm ) / (ll-m);
+                    pmm = pmmp1;
+                    pmmp1 = pll;
+                }
+
+                return pll;
+             }
+
+
+            function SH( l, m, theta, phi ) {
+                const sqrt2 = (2.0)**0.5;
+                if( m == 0 ) {       
+                    return K(l,0)*P(l,m,Math.cos(theta))
+                } else if( m > 0 ) {
+                    return sqrt2*K(l,m)*Math.cos(m*phi)*P(l,m,Math.cos(theta))
+                } else {
+                    return sqrt2*K(l,-m)*Math.sin(-m*phi)*P(l,-m,Math.cos(theta))
+                }
+             }
+
+            var tempx = (x - meanx) ;
+            var tempy = (y - meany) ;
+            var tempz = (z - meanz) ;
+            var r = (tempx**2+(tempy-5)**2+tempz**2)**0.5;
+            var phi = Math.atan((tempy-5)/tempx);
+            var theta = Math.acos(tempz/r);
             
-            var lowDist = ( (lowx-x)**2 + (lowy-y)**2 + (lowz-z)**2 )**0.5;
-            var midDist = ( (midx-x)**2 + (midy-y)**2 + (midz-z)**2 )**0.5;
-            var highDist = ( (highx-x)**2 + (highy-y)**2 + (highz-z)**2 )**0.5;
-            var totalDist = lowDist + midDist + highDist;
-            var lowDistInv = 5 / lowDist;
-            var midDistInv = 5 / midDist;
-            var highDistInv = 5 / highDist;
-            
+            var m = parseFloat(document.getElementById('m').value);
+            var l = parseFloat(document.getElementById('l').value);
+            document.getElementById("m").max = l;
+            document.getElementById("mlabel").innerHTML = "m: ".concat(m);
+            document.getElementById("llabel").innerHTML = "l: ".concat(l);
+
+            var harmonic =  (SH( l, m, theta, phi ))*(r**0.5);
+
+            /*
             positions[i] = x + normal.x  * (lowFactor * lowDistInv + midFactor * midDistInv + highFactor * highDistInv) ;
             positions[i + 1] = y + normal.y * (lowFactor * lowDistInv + midFactor * midDistInv + highFactor * highDistInv) ;
             positions[i + 2] = z + normal.z * (lowFactor * lowDistInv + midFactor * midDistInv + highFactor * highDistInv) ;
+            */
+            positions[i] = x + normal.x  * (midFactor * harmonic) ;
+            positions[i + 1] = y + normal.y * (midFactor * harmonic) ;
+            positions[i + 2] = z + normal.z * (midFactor * harmonic) ;
+
         }
         
         mesh.geometry.attributes.position.needsUpdate = true;
-        dotLow.geometry.attributes.position.needsUpdate = true;
-        dotMid.geometry.attributes.position.needsUpdate = true;
-        dotHigh.geometry.attributes.position.needsUpdate = true;
+
         mesh.geometry.computeVertexNormals();
     }
     
