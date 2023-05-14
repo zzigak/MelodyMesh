@@ -4,6 +4,175 @@ import { OBJLoader } from "three/addons/loaders/OBJLoader.js"
 import * as BufferGeometryUtils from "three/addons/utils/BufferGeometryUtils.js"
 
 let bunny
+var m1 = 3;
+var m2 = 6;
+var m3 = 8;
+var l1 = 9;
+var l2 = 18;
+var l3 = 24;
+var lowmag = 0.25;
+var midmag = 0.25;
+var highmag = 0.25;
+
+var phiPhase = 0;
+var thetaPhase = 0;
+
+//spherical harmonics formulas adapted from https://patapom.com/blog/SHPortal/
+
+function K( l, m ) {
+    var temp = ((2.0*l+1.0)*factorial(l-m)) / (4.0*Math.PI*factorial(l+m));   // Here, you can use a precomputed table for factorials
+    return (temp)**0.5;
+    //return K_values[l][m];
+ }
+
+
+function P( l, m, cosTheta ) {
+    // TODO: consier quantize cosTheta if performance is an issue
+
+    if (cachedLegendrePolynomials[l] && cachedLegendrePolynomials[l][m] && cachedLegendrePolynomials[l][m][cosTheta] !== undefined) {
+        //console.log("cache hit!!!");
+        return cachedLegendrePolynomials[l][m][cosTheta];
+    }
+    else {
+        var pmm = 1.0;
+
+        if ( m > 0 ) {
+            var somx2 = ((1.0-cosTheta)*(1.0+cosTheta))**0.5;
+            var fact = 1.0;
+            for ( var iter=1; iter<=m; iter++ ) {
+                pmm *= (-fact) * somx2;
+                fact += 2.0;
+            }
+        }
+
+        if( l == m ) {
+            return pmm;
+        }
+
+        var pmmp1 = cosTheta * (2.0*m+1.0) * pmm;
+
+        if ( l == m+1 ) {
+            return pmmp1;
+        }
+
+        var pll = 0.0;
+        for ( var ll=m+2; ll<=l; ll++ ) {
+            pll = ( (2.0*ll-1.0)*cosTheta*pmmp1-(ll+m-1.0)*pmm ) / (ll-m);
+            pmm = pmmp1;
+            pmmp1 = pll;
+        }
+
+        if (!cachedLegendrePolynomials[l]) {
+            cachedLegendrePolynomials[l] = {};
+        }
+        if (!cachedLegendrePolynomials[l][m]) {
+            cachedLegendrePolynomials[l][m] = {};
+        }
+        cachedLegendrePolynomials[l][m][cosTheta] = pll;
+        //console.log("cache miss!!!: ", "l= ", l, "m= ", m, "cosTheta= ", cosTheta, "result: ", cachedLegendrePolynomials[l][m][cosTheta]);
+        return pll;
+    }
+ }
+
+function SH(l, m, theta, phi) {
+    // TODO: consider quantize theta and phi if performance is an issue
+
+    const key = `${l}_${m}_${theta}_${phi}`;
+
+    if (cachedSH[key] !== undefined) {
+        //console.log("SH cache hit!!!");
+        return cachedSH[key];
+    }
+
+    const sqrt2 = Math.sqrt(2.0);
+    let result;
+
+    if (m === 0) {
+        result = K(l, 0) * P(l, m, Math.cos(theta));
+    } else if (m > 0) {
+        result = sqrt2 * K(l, m) * Math.cos(m * phi) * P(l, m, Math.cos(theta));
+    } else {
+        result = sqrt2 * K(l, -m) * Math.sin(-m * phi) * P(l, -m, Math.cos(theta));
+    }
+
+    //console.log("cached miss: ", theta, phi, result)
+
+    cachedSH[key] = result;
+    return result;
+}
+
+
+function updateSliders () {
+    m1 = parseInt(document.getElementById('m1').value);
+    l1 = parseInt(document.getElementById('l1').value);
+    document.getElementById("m1").max = l1;
+    document.getElementById("m1label").innerHTML = "Low Degree: ".concat(m1);
+    document.getElementById("l1label").innerHTML = "Low Order: ".concat(l1);
+
+    m2 = parseInt(document.getElementById('m2').value);
+    l2 = parseInt(document.getElementById('l2').value);
+    document.getElementById("m2").max = l2;
+    document.getElementById("m2label").innerHTML = "Mid Degree: ".concat(m2);
+    document.getElementById("l2label").innerHTML = "Mid Order: ".concat(l2);
+
+    m3 = parseInt(document.getElementById('m3').value);
+    l3 = parseInt(document.getElementById('l3').value);
+    document.getElementById("m3").max = l3;
+    document.getElementById("m3label").innerHTML = "High Degree: ".concat(m3);
+    document.getElementById("l3label").innerHTML = "High Order: ".concat(l3);
+
+    lowmag = parseFloat(document.getElementById('lowmag').value);
+    document.getElementById("lowmaglabel").innerHTML = "Low Magnitude: ".concat(lowmag);
+
+    midmag = parseFloat(document.getElementById('midmag').value);
+    document.getElementById("midmaglabel").innerHTML = "Mid Magnitude: ".concat(midmag);
+
+    highmag = parseFloat(document.getElementById('highmag').value);
+    document.getElementById("highmaglabel").innerHTML = "High Magnitude: ".concat(highmag);
+
+    thetaPhase = parseFloat(document.getElementById('thetaPhase').value);
+    document.getElementById("thetaphaselabel").innerHTML = "Theta Phase: ".concat(thetaPhase);
+
+    phiPhase = parseFloat(document.getElementById('phiPhase').value);
+    document.getElementById("phiphaselabel").innerHTML = "Phi Phase: ".concat(phiPhase);
+
+};
+
+document.getElementById("m1").addEventListener("input", function (h){
+    updateSliders();
+});
+document.getElementById("m2").addEventListener("input", function (h){
+    updateSliders();
+});
+document.getElementById("m3").addEventListener("input", function (h){
+    updateSliders();
+});
+document.getElementById("l1").addEventListener("input", function (h){
+    updateSliders();
+});
+document.getElementById("l2").addEventListener("input", function (h){
+    updateSliders();
+});
+document.getElementById("l3").addEventListener("input", function (h){
+    updateSliders();
+});
+document.getElementById("lowmag").addEventListener("input", function (h){
+    updateSliders();
+});
+document.getElementById("midmag").addEventListener("input", function (h){
+    updateSliders();
+});
+document.getElementById("highmag").addEventListener("input", function (h){
+    updateSliders();
+});
+document.getElementById("thetaPhase").addEventListener("input", function (h){
+    updateSliders();
+});
+document.getElementById("phiPhase").addEventListener("input", function (h){
+    updateSliders();
+});
+
+
 
 let cachedSH = {}; // memorization to speed up the process of computing SH values
 const cachedLegendrePolynomials = {}; // memorization to speed up the process of computing LegendrePolynomials
@@ -13,11 +182,11 @@ const factorials = [
     1, 1, 2, 6, 24, 120, 720, 5040, 40320, 362880, 3628800, 39916800, 479001600, 6227020800, 87178291200, 1307674368000, 20922789888000, 355687428096000, 6402373705728000, 121645100408832000, 2432902008176640000, 51090942171709440000, 1124000727777607680000, 25852016738884976640000, 620448401733239439360000, 15511210043330985984000000, 403291461126605635584000000, 10888869450418352160768000000, 304888344611713860501504000000, 8841761993739701954543616000000, 265252859812191058636308480000000, 8222838654177922817725562880000000, 263130836933693530167218012160000000, 8683317618811886495518194401280000000, 295232799039604140847618609643520000000];
 
 function factorial(n, r = 1) {
-    //   while (n > 0) r *= n--;
+       while (n > 0) r *= n--;
 
-    //   console.log("R: ", r);
-    //   return r;
-        return factorials[n];
+       //console.log("R: ", r);
+       return r;
+        //return factorials[n];
     }
 
 // Attempt to speed up the process of computing K
@@ -27,17 +196,17 @@ function generatePrecomputedK(maxL) {
     for (let l = 0; l <= maxL; l++) {
         K_values[l] = new Array(l + 1);
         for (let m = 0; m <= l; m++) {
-        var lMinusM = l - m;
-        var lPlusM = l + m;
-        var temp = (2 * l + 1) * factorial(lMinusM) / (4 * Math.PI * factorial(lPlusM));
-        K_values[l][m] = Math.sqrt(temp);
+            var lMinusM = l - m;
+            var lPlusM = l + m;
+            var temp = (2 * l + 1) * factorial(lMinusM) / (4 * Math.PI * factorial(lPlusM));
+            K_values[l][m] = Math.sqrt(temp);
         }
     }
     
     return K_values;
     }
 
-const maxL = 30;
+const maxL = 40;
 // Precompute K values we don't have to do it every frame!!!
 const K_values = generatePrecomputedK(maxL);
 
@@ -72,11 +241,11 @@ function setAudio() {
         const queryString = window.location.href;
         const url = new URL(queryString);
         var sec = url.searchParams.get("starttime");
-        console.log(sec)
+        //console.log(sec)
 
         audio.currentTime = sec
 
-        console.log(audio)
+        //console.log(audio)
 
         // Once a song is imported, render the scene
         main()
@@ -99,18 +268,18 @@ function mapRange(val, inMin, inMax, outMin, outMax) {
 
 
 document.getElementById('playpause').addEventListener('click', () => {
-    console.log(audio)
+    //console.log(audio)
     if (audio.paused) {
 
         if (firstClick ==1) {
             const queryString = window.location.href;
             const url = new URL(queryString);
             var sec = url.searchParams.get("starttime");
-            console.log(sec)
+            //console.log(sec)
 
             audio.currentTime = sec
 
-            console.log(audio)
+            //console.log(audio)
 
             // Once a song is imported, render the scene
             main()
@@ -205,9 +374,10 @@ async function main() {
         bunny = await new Promise((resolve, reject) => {
             try {
                 const loader = new OBJLoader()
-                loader.load('resources/sphere5.obj', root => { // bunny.obj
+                loader.load('resources/bunny2.obj', root => { // bunny.obj
                     // actually get the mesh
                     const bunny = root.children[0]
+
                     // transform since the original is tiny
 
                     bunny.scale.set(1, 1, 1)
@@ -229,7 +399,7 @@ async function main() {
                     const merged = BufferGeometryUtils.mergeVertices(old)
                     old.dispose()
 
-                    console.log(bunny.material)
+                    //console.log(bunny.material)
                     const mesh = new THREE.Mesh(merged) //wireframeMaterial
                     mesh.geometry.computeVertexNormals()
 
@@ -367,49 +537,21 @@ async function main() {
         }
     
         
-        var m1 = parseInt(document.getElementById('m1').value);
-        var l1 = parseInt(document.getElementById('l1').value);
-        document.getElementById("m1").max = l1;
-        document.getElementById("m1label").innerHTML = "m1: ".concat(m1);
-        document.getElementById("l1label").innerHTML = "l1: ".concat(l1);
+        
 
-        var m2 = parseInt(document.getElementById('m2').value);
-        var l2 = parseInt(document.getElementById('l2').value);
-        document.getElementById("m2").max = l2;
-        document.getElementById("m2label").innerHTML = "m2: ".concat(m2);
-        document.getElementById("l2label").innerHTML = "l2: ".concat(l2);
-
-        var m3 = parseInt(document.getElementById('m3').value);
-        var l3 = parseInt(document.getElementById('l3').value);
-        document.getElementById("m3").max = l3;
-        document.getElementById("m3label").innerHTML = "m3: ".concat(m3);
-        document.getElementById("l3label").innerHTML = "l3: ".concat(l3);
         const positions = mesh.geometry.attributes.position.array;
     
         const time = window.performance.now()* 0.0001 * highFreq;
         const rf = 0.00001;
         //const freqFactor = lowFreq * 0.1 * (1 + midFreq * 0.1); // Incorporate mid-frequency to adjust scaling
-        const highFactor = highFreq *0.05-0.1;
-        const midFactor = midFreq *0.05-0.1;
-        const lowFactor = lowFreq * 0.05-0.1;    
-
-
+        const highFactor = highFreq *0.03;
+        const midFactor = midFreq *0.03;
+        const lowFactor = lowFreq * 0.03;    
         
         for (let i = 0; i < positions.length; i += 3) {
             const x = originalVertexPositions[i];
             const y = originalVertexPositions[i + 1];
             const z = originalVertexPositions[i + 2];
-    
-            // Calculate the warp value with noise and frequency factor
-            //let warp = Math.abs(noise.noise3D(x * rf * 4, y * rf * 6, z * rf * 7 + time) * freqFactor);
-    
-            // Limit the warp value to a reasonable range?? TODO: play around with these nums
-            //warp = Math.min(Math.max(warp, -5), 5); // Adjust the range as needed to prevent triangles from exploding
-
-
-            // let warpX = Math.abs(noise.noise2D(x*rf+time, lowFactor));
-            // let warpY = Math.abs(noise.noise2D(y*rf+time, midFactor));
-            // let warpZ = Math.abs(noise.noise2D(z*rf+time, highFactor));
     
             const normal = new THREE.Vector3(
                 mesh.geometry.attributes.normal.array[i],
@@ -417,121 +559,27 @@ async function main() {
                 mesh.geometry.attributes.normal.array[i + 2]
             );
 
-            
-
-
-            //spherical harmonics formulas adapted from https://patapom.com/blog/SHPortal/
-
-
-
-            function K( l, m ) {
-                // var temp = ((2.0*l+1.0)*factorial(l-m)) / (4.0*Math.PI*factorial(l+m));   // Here, you can use a precomputed table for factorials
-                // return (temp)**0.5;
-                return K_values[l][m];
-             }
-            
-
-            function P( l, m, cosTheta ) {
-                // TODO: consier quantize cosTheta if performance is an issue
-
-                if (cachedLegendrePolynomials[l] && cachedLegendrePolynomials[l][m] && cachedLegendrePolynomials[l][m][cosTheta] !== undefined) {
-                    //console.log("cache hit!!!");
-                    return cachedLegendrePolynomials[l][m][cosTheta];
-                }
-                else {
-                    var pmm = 1.0;
-
-                    if ( m > 0 ) {
-                        var somx2 = ((1.0-cosTheta)*(1.0+cosTheta))**0.5;
-                        var fact = 1.0;
-                        for ( var iter=1; iter<=m; iter++ ) {
-                            pmm *= (-fact) * somx2;
-                            fact += 2.0;
-                        }
-                    }
-
-                    if( l == m ) {
-                        return pmm;
-                    }
-
-                    var pmmp1 = cosTheta * (2.0*m+1.0) * pmm;
-
-                    if ( l == m+1 ) {
-                        return pmmp1;
-                    }
-
-                    var pll = 0.0;
-                    for ( var ll=m+2; ll<=l; ll++ ) {
-                        pll = ( (2.0*ll-1.0)*cosTheta*pmmp1-(ll+m-1.0)*pmm ) / (ll-m);
-                        pmm = pmmp1;
-                        pmmp1 = pll;
-                    }
-
-                    if (!cachedLegendrePolynomials[l]) {
-                        cachedLegendrePolynomials[l] = {};
-                    }
-                    if (!cachedLegendrePolynomials[l][m]) {
-                        cachedLegendrePolynomials[l][m] = {};
-                    }
-                    cachedLegendrePolynomials[l][m][cosTheta] = pll;
-                    //console.log("cache miss!!!: ", "l= ", l, "m= ", m, "cosTheta= ", cosTheta, "result: ", cachedLegendrePolynomials[l][m][cosTheta]);
-                    return pll;
-                }
-             }
-
-
-            // function SH( l, m, theta, phi ) {
-            //     const sqrt2 = (2.0)**0.5;
-            //     if( m == 0 ) {       
-            //         return K(l,0)*P(l,m,Math.cos(theta))
-            //     } else if( m > 0 ) {
-            //         return sqrt2*K(l,m)*Math.cos(m*phi)*P(l,m,Math.cos(theta))
-            //     } else {
-            //         return sqrt2*K(l,-m)*Math.sin(-m*phi)*P(l,-m,Math.cos(theta))
-            //     }
-            //  }
-
-            
-            function SH(l, m, theta, phi) {
-                // TODO: consider quantize theta and phi if performance is an issue
-
-                const key = `${l}_${m}_${theta}_${phi}`;
-            
-                if (cachedSH[key] !== undefined) {
-                    //console.log("SH cache hit!!!");
-                    return cachedSH[key];
-                }
-            
-                const sqrt2 = Math.sqrt(2.0);
-                let result;
-            
-                if (m === 0) {
-                    result = K(l, 0) * P(l, m, Math.cos(theta));
-                } else if (m > 0) {
-                    result = sqrt2 * K(l, m) * Math.cos(m * phi) * P(l, m, Math.cos(theta));
-                } else {
-                    result = sqrt2 * K(l, -m) * Math.sin(-m * phi) * P(l, -m, Math.cos(theta));
-                }
-
-                //console.log("cached miss: ", theta, phi, result)
-            
-                cachedSH[key] = result;
-                return result;
-            }
-            
-            
-
             var tempx = (x - meanx) ;
             var tempy = (y - meany) ;
             var tempz = (z - meanz) ;
             var r = (tempx**2+(tempy-5)**2+tempz**2)**0.5;
-            var phi = Math.atan((tempy-5)/tempx);
-            var theta = Math.acos(tempz/r);
 
-            var lowharmonic =  (SH( l1, m1, theta, phi ))*(r**0.25);
-            var midharmonic =  (SH( l2, m2, theta, phi ))*(r**0.25);
-            var highharmonic =  (SH( l3, m3, theta, phi ))*(r**0.25);
+            
 
+            var phi = Math.atan((tempy-5)/tempx) + phiPhase;
+            var theta = Math.acos(tempz/r) + thetaPhase;
+
+            var lowharmonic = (SH( l1, m1, theta, phi ))*(r**lowmag);
+            var midharmonic = (SH( l2, m2, theta, phi ))*(r**midmag);
+            var highharmonic = (SH( l3, m3, theta, phi ))*(r**highmag);
+
+            //test spherical harmonic forms here
+            /*
+            positions[i] = SH( l1, m1, theta, phi ) * Math.sin(theta) * Math.cos(phi) ;
+            positions[i + 1] = SH( l1, m1, theta, phi ) * Math.sin(theta) * Math.sin(phi) ;
+            positions[i + 2] = SH( l1, m1, theta, phi ) * Math.cos(theta)  ;
+            */
+            
             positions[i] = x + normal.x  * (lowFactor * lowharmonic + midFactor * midharmonic + highFactor * highharmonic) ;
             positions[i + 1] = y + normal.y * (lowFactor * lowharmonic + midFactor * midharmonic + highFactor * highharmonic) ;
             positions[i + 2] = z + normal.z * (lowFactor * lowharmonic + midFactor * midharmonic + highFactor * highharmonic) ;
