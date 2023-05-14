@@ -5,9 +5,6 @@ import * as BufferGeometryUtils from "three/addons/utils/BufferGeometryUtils.js"
 
 let bunny
 
-
-const quantizedVal = 10 // rounding/discretizing to reduce the precision of the input number while still maintaining an acceptable level of accuracy
-
 let cachedSH = {}; // memorization to speed up the process of computing SH values
 const cachedLegendrePolynomials = {}; // memorization to speed up the process of computing LegendrePolynomials
 
@@ -369,6 +366,24 @@ async function main() {
             originalVertexPositions = mesh.geometry.attributes.position.array.slice();
         }
     
+        
+        var m1 = parseInt(document.getElementById('m1').value);
+        var l1 = parseInt(document.getElementById('l1').value);
+        document.getElementById("m1").max = l1;
+        document.getElementById("m1label").innerHTML = "m1: ".concat(m1);
+        document.getElementById("l1label").innerHTML = "l1: ".concat(l1);
+
+        var m2 = parseInt(document.getElementById('m2').value);
+        var l2 = parseInt(document.getElementById('l2').value);
+        document.getElementById("m2").max = l2;
+        document.getElementById("m2label").innerHTML = "m2: ".concat(m2);
+        document.getElementById("l2label").innerHTML = "l2: ".concat(l2);
+
+        var m3 = parseInt(document.getElementById('m3').value);
+        var l3 = parseInt(document.getElementById('l3').value);
+        document.getElementById("m3").max = l3;
+        document.getElementById("m3label").innerHTML = "m3: ".concat(m3);
+        document.getElementById("l3label").innerHTML = "l3: ".concat(l3);
         const positions = mesh.geometry.attributes.position.array;
     
         const time = window.performance.now()* 0.0001 * highFreq;
@@ -416,17 +431,12 @@ async function main() {
              }
             
 
-
-            function quantizeCosTheta(cosTheta, steps) {
-                return Math.round(cosTheta * steps) / steps;
-            }
-
             function P( l, m, cosTheta ) {
-                const quantizedCosTheta = quantizeCosTheta(cosTheta, quantizedVal);
-                
-                if (cachedLegendrePolynomials[l] && cachedLegendrePolynomials[l][m] && cachedLegendrePolynomials[l][m][quantizedCosTheta] !== undefined) {
+                // TODO: consier quantize cosTheta if performance is an issue
+
+                if (cachedLegendrePolynomials[l] && cachedLegendrePolynomials[l][m] && cachedLegendrePolynomials[l][m][cosTheta] !== undefined) {
                     //console.log("cache hit!!!");
-                    return cachedLegendrePolynomials[l][m][quantizedCosTheta];
+                    return cachedLegendrePolynomials[l][m][cosTheta];
                 }
                 else {
                     var pmm = 1.0;
@@ -463,8 +473,8 @@ async function main() {
                     if (!cachedLegendrePolynomials[l][m]) {
                         cachedLegendrePolynomials[l][m] = {};
                     }
-                    cachedLegendrePolynomials[l][m][quantizedCosTheta] = pll;
-                    //console.log("cache miss!!!: ", "l= ", l, "m= ", m, "cosTheta= ", quantizedCosTheta, "result: ", cachedLegendrePolynomials[l][m][quantizedCosTheta]);
+                    cachedLegendrePolynomials[l][m][cosTheta] = pll;
+                    //console.log("cache miss!!!: ", "l= ", l, "m= ", m, "cosTheta= ", cosTheta, "result: ", cachedLegendrePolynomials[l][m][cosTheta]);
                     return pll;
                 }
              }
@@ -481,15 +491,11 @@ async function main() {
             //     }
             //  }
 
-
-            function quantizeAngle(angle, steps) {
-                return Math.round(angle * steps) / steps;
-            }
             
             function SH(l, m, theta, phi) {
-                const quantizedTheta = quantizeAngle(theta, quantizedVal);
-                const quantizedPhi = quantizeAngle(phi, quantizedVal);
-                const key = `${l}_${m}_${quantizedTheta}_${quantizedPhi}`;
+                // TODO: consider quantize theta and phi if performance is an issue
+
+                const key = `${l}_${m}_${theta}_${phi}`;
             
                 if (cachedSH[key] !== undefined) {
                     //console.log("SH cache hit!!!");
@@ -500,14 +506,14 @@ async function main() {
                 let result;
             
                 if (m === 0) {
-                    result = K(l, 0) * P(l, m, Math.cos(quantizedTheta));
+                    result = K(l, 0) * P(l, m, Math.cos(theta));
                 } else if (m > 0) {
-                    result = sqrt2 * K(l, m) * Math.cos(m * quantizedPhi) * P(l, m, Math.cos(quantizedTheta));
+                    result = sqrt2 * K(l, m) * Math.cos(m * phi) * P(l, m, Math.cos(theta));
                 } else {
-                    result = sqrt2 * K(l, -m) * Math.sin(-m * quantizedPhi) * P(l, -m, Math.cos(quantizedTheta));
+                    result = sqrt2 * K(l, -m) * Math.sin(-m * phi) * P(l, -m, Math.cos(theta));
                 }
 
-                //console.log("cached miss: ", quantizedTheta, quantizedPhi, result)
+                //console.log("cached miss: ", theta, phi, result)
             
                 cachedSH[key] = result;
                 return result;
@@ -521,36 +527,6 @@ async function main() {
             var r = (tempx**2+(tempy-5)**2+tempz**2)**0.5;
             var phi = Math.atan((tempy-5)/tempx);
             var theta = Math.acos(tempz/r);
-            
-            
-            // TODO: investigate why these SLOW DOWN THE UI SO MUCH
-
-            // var m1 = parseInt(document.getElementById('m1').value);
-            // var l1 = parseInt(document.getElementById('l1').value);
-            // document.getElementById("m1").max = l1;
-            // document.getElementById("m1label").innerHTML = "m1: ".concat(m1);
-            // document.getElementById("l1label").innerHTML = "l1: ".concat(l1);
-
-            // var m2 = parseInt(document.getElementById('m2').value);
-            // var l2 = parseInt(document.getElementById('l2').value);
-            // document.getElementById("m2").max = l2;
-            // document.getElementById("m2label").innerHTML = "m2: ".concat(m2);
-            // document.getElementById("l2label").innerHTML = "l2: ".concat(l2);
-
-            // var m3 = parseInt(document.getElementById('m3').value);
-            // var l3 = parseInt(document.getElementById('l3').value);
-            // document.getElementById("m3").max = l3;
-            // document.getElementById("m3label").innerHTML = "m3: ".concat(m3);
-            // document.getElementById("l3label").innerHTML = "l3: ".concat(l3);
-
-            var m1 = 3
-            var l1 = 9
-            var l2 = 18
-            var m2 = 6
-            var m3 = 8
-            var l3 = 24
-
-            //var harmonic = SH( l, m, theta, phi );
 
             var lowharmonic =  (SH( l1, m1, theta, phi ))*(r**0.25);
             var midharmonic =  (SH( l2, m2, theta, phi ))*(r**0.25);
