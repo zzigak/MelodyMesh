@@ -6,6 +6,44 @@ import * as BufferGeometryUtils from "three/addons/utils/BufferGeometryUtils.js"
 let bunny
 
 
+const quantizedVal = 10 // rounding/discretizing to reduce the precision of the input number while still maintaining an acceptable level of accuracy
+
+let cachedSH = {}; // memorization to speed up the process of computing SH values
+const cachedLegendrePolynomials = {}; // memorization to speed up the process of computing LegendrePolynomials
+
+// cached factorials to speed up the process of computing factorials
+const factorials = [
+    1, 1, 2, 6, 24, 120, 720, 5040, 40320, 362880, 3628800, 39916800, 479001600, 6227020800, 87178291200, 1307674368000, 20922789888000, 355687428096000, 6402373705728000, 121645100408832000, 2432902008176640000, 51090942171709440000, 1124000727777607680000, 25852016738884976640000, 620448401733239439360000, 15511210043330985984000000, 403291461126605635584000000, 10888869450418352160768000000, 304888344611713860501504000000, 8841761993739701954543616000000, 265252859812191058636308480000000, 8222838654177922817725562880000000, 263130836933693530167218012160000000, 8683317618811886495518194401280000000, 295232799039604140847618609643520000000];
+
+function factorial(n, r = 1) {
+    //   while (n > 0) r *= n--;
+
+    //   console.log("R: ", r);
+    //   return r;
+        return factorials[n];
+    }
+
+// Attempt to speed up the process of computing K
+function generatePrecomputedK(maxL) {
+    const K_values = new Array(maxL + 1);
+    
+    for (let l = 0; l <= maxL; l++) {
+        K_values[l] = new Array(l + 1);
+        for (let m = 0; m <= l; m++) {
+        var lMinusM = l - m;
+        var lPlusM = l + m;
+        var temp = (2 * l + 1) * factorial(lMinusM) / (4 * Math.PI * factorial(lPlusM));
+        K_values[l][m] = Math.sqrt(temp);
+        }
+    }
+    
+    return K_values;
+    }
+
+const maxL = 30;
+// Precompute K values we don't have to do it every frame!!!
+const K_values = generatePrecomputedK(maxL);
+
 const audioInput = document.getElementById("song");
 audioInput.addEventListener("change", setAudio, false);
 
@@ -354,9 +392,9 @@ async function main() {
             //warp = Math.min(Math.max(warp, -5), 5); // Adjust the range as needed to prevent triangles from exploding
 
 
-            let warpX = Math.abs(noise.noise2D(x*rf+time, lowFactor));
-            let warpY = Math.abs(noise.noise2D(y*rf+time, midFactor));
-            let warpZ = Math.abs(noise.noise2D(z*rf+time, highFactor));
+            // let warpX = Math.abs(noise.noise2D(x*rf+time, lowFactor));
+            // let warpY = Math.abs(noise.noise2D(y*rf+time, midFactor));
+            // let warpZ = Math.abs(noise.noise2D(z*rf+time, highFactor));
     
             const normal = new THREE.Vector3(
                 mesh.geometry.attributes.normal.array[i],
@@ -369,59 +407,113 @@ async function main() {
 
             //spherical harmonics formulas adapted from https://patapom.com/blog/SHPortal/
 
-            function factorial(n, r = 1) {
-              while (n > 0) r *= n--;
-              return r;
-            }
+
 
             function K( l, m ) {
-                var temp = ((2.0*l+1.0)*factorial(l-m)) / (4.0*Math.PI*factorial(l+m));   // Here, you can use a precomputed table for factorials
-                return (temp)**0.5;
+                // var temp = ((2.0*l+1.0)*factorial(l-m)) / (4.0*Math.PI*factorial(l+m));   // Here, you can use a precomputed table for factorials
+                // return (temp)**0.5;
+                return K_values[l][m];
              }
+            
+
+
+            function quantizeCosTheta(cosTheta, steps) {
+                return Math.round(cosTheta * steps) / steps;
+            }
 
             function P( l, m, cosTheta ) {
-                var pmm = 1.0;
+                const quantizedCosTheta = quantizeCosTheta(cosTheta, quantizedVal);
+                
+                if (cachedLegendrePolynomials[l] && cachedLegendrePolynomials[l][m] && cachedLegendrePolynomials[l][m][quantizedCosTheta] !== undefined) {
+                    //console.log("cache hit!!!");
+                    return cachedLegendrePolynomials[l][m][quantizedCosTheta];
+                }
+                else {
+                    var pmm = 1.0;
 
-                if ( m > 0 ) {
-                    var somx2 = ((1.0-cosTheta)*(1.0+cosTheta))**0.5;
-                    var fact = 1.0;
-                    for ( var iter=1; iter<=m; iter++ ) {
-                        pmm *= (-fact) * somx2;
-                        fact += 2.0;
+                    if ( m > 0 ) {
+                        var somx2 = ((1.0-cosTheta)*(1.0+cosTheta))**0.5;
+                        var fact = 1.0;
+                        for ( var iter=1; iter<=m; iter++ ) {
+                            pmm *= (-fact) * somx2;
+                            fact += 2.0;
+                        }
                     }
+
+                    if( l == m ) {
+                        return pmm;
+                    }
+
+                    var pmmp1 = cosTheta * (2.0*m+1.0) * pmm;
+
+                    if ( l == m+1 ) {
+                        return pmmp1;
+                    }
+
+                    var pll = 0.0;
+                    for ( var ll=m+2; ll<=l; ll++ ) {
+                        pll = ( (2.0*ll-1.0)*cosTheta*pmmp1-(ll+m-1.0)*pmm ) / (ll-m);
+                        pmm = pmmp1;
+                        pmmp1 = pll;
+                    }
+
+                    if (!cachedLegendrePolynomials[l]) {
+                        cachedLegendrePolynomials[l] = {};
+                    }
+                    if (!cachedLegendrePolynomials[l][m]) {
+                        cachedLegendrePolynomials[l][m] = {};
+                    }
+                    cachedLegendrePolynomials[l][m][quantizedCosTheta] = pll;
+                    //console.log("cache miss!!!: ", "l= ", l, "m= ", m, "cosTheta= ", quantizedCosTheta, "result: ", cachedLegendrePolynomials[l][m][quantizedCosTheta]);
+                    return pll;
                 }
-
-                if( l == m ) {
-                    return pmm;
-                }
-
-                var pmmp1 = cosTheta * (2.0*m+1.0) * pmm;
-
-                if ( l == m+1 ) {
-                    return pmmp1;
-                }
-
-                var pll = 0.0;
-                for ( var ll=m+2; ll<=l; ll++ ) {
-                    pll = ( (2.0*ll-1.0)*cosTheta*pmmp1-(ll+m-1.0)*pmm ) / (ll-m);
-                    pmm = pmmp1;
-                    pmmp1 = pll;
-                }
-
-                return pll;
              }
 
 
-            function SH( l, m, theta, phi ) {
-                const sqrt2 = (2.0)**0.5;
-                if( m == 0 ) {       
-                    return K(l,0)*P(l,m,Math.cos(theta))
-                } else if( m > 0 ) {
-                    return sqrt2*K(l,m)*Math.cos(m*phi)*P(l,m,Math.cos(theta))
+            // function SH( l, m, theta, phi ) {
+            //     const sqrt2 = (2.0)**0.5;
+            //     if( m == 0 ) {       
+            //         return K(l,0)*P(l,m,Math.cos(theta))
+            //     } else if( m > 0 ) {
+            //         return sqrt2*K(l,m)*Math.cos(m*phi)*P(l,m,Math.cos(theta))
+            //     } else {
+            //         return sqrt2*K(l,-m)*Math.sin(-m*phi)*P(l,-m,Math.cos(theta))
+            //     }
+            //  }
+
+
+            function quantizeAngle(angle, steps) {
+                return Math.round(angle * steps) / steps;
+            }
+            
+            function SH(l, m, theta, phi) {
+                const quantizedTheta = quantizeAngle(theta, quantizedVal);
+                const quantizedPhi = quantizeAngle(phi, quantizedVal);
+                const key = `${l}_${m}_${quantizedTheta}_${quantizedPhi}`;
+            
+                if (cachedSH[key] !== undefined) {
+                    //console.log("SH cache hit!!!");
+                    return cachedSH[key];
+                }
+            
+                const sqrt2 = Math.sqrt(2.0);
+                let result;
+            
+                if (m === 0) {
+                    result = K(l, 0) * P(l, m, Math.cos(quantizedTheta));
+                } else if (m > 0) {
+                    result = sqrt2 * K(l, m) * Math.cos(m * quantizedPhi) * P(l, m, Math.cos(quantizedTheta));
                 } else {
-                    return sqrt2*K(l,-m)*Math.sin(-m*phi)*P(l,-m,Math.cos(theta))
+                    result = sqrt2 * K(l, -m) * Math.sin(-m * quantizedPhi) * P(l, -m, Math.cos(quantizedTheta));
                 }
-             }
+
+                //console.log("cached miss: ", quantizedTheta, quantizedPhi, result)
+            
+                cachedSH[key] = result;
+                return result;
+            }
+            
+            
 
             var tempx = (x - meanx) ;
             var tempy = (y - meany) ;
@@ -430,25 +522,33 @@ async function main() {
             var phi = Math.atan((tempy-5)/tempx);
             var theta = Math.acos(tempz/r);
             
-            //
+            
+            // TODO: investigate why these SLOW DOWN THE UI SO MUCH
 
-            var m1 = parseFloat(document.getElementById('m1').value);
-            var l1 = parseFloat(document.getElementById('l1').value);
-            document.getElementById("m1").max = l1;
-            document.getElementById("m1label").innerHTML = "m1: ".concat(m1);
-            document.getElementById("l1label").innerHTML = "l1: ".concat(l1);
+            // var m1 = parseInt(document.getElementById('m1').value);
+            // var l1 = parseInt(document.getElementById('l1').value);
+            // document.getElementById("m1").max = l1;
+            // document.getElementById("m1label").innerHTML = "m1: ".concat(m1);
+            // document.getElementById("l1label").innerHTML = "l1: ".concat(l1);
 
-            var m2 = parseFloat(document.getElementById('m2').value);
-            var l2 = parseFloat(document.getElementById('l2').value);
-            document.getElementById("m2").max = l2;
-            document.getElementById("m2label").innerHTML = "m2: ".concat(m2);
-            document.getElementById("l2label").innerHTML = "l2: ".concat(l2);
+            // var m2 = parseInt(document.getElementById('m2').value);
+            // var l2 = parseInt(document.getElementById('l2').value);
+            // document.getElementById("m2").max = l2;
+            // document.getElementById("m2label").innerHTML = "m2: ".concat(m2);
+            // document.getElementById("l2label").innerHTML = "l2: ".concat(l2);
 
-            var m3 = parseFloat(document.getElementById('m3').value);
-            var l3 = parseFloat(document.getElementById('l3').value);
-            document.getElementById("m3").max = l3;
-            document.getElementById("m3label").innerHTML = "m3: ".concat(m3);
-            document.getElementById("l3label").innerHTML = "l3: ".concat(l3);
+            // var m3 = parseInt(document.getElementById('m3').value);
+            // var l3 = parseInt(document.getElementById('l3').value);
+            // document.getElementById("m3").max = l3;
+            // document.getElementById("m3label").innerHTML = "m3: ".concat(m3);
+            // document.getElementById("l3label").innerHTML = "l3: ".concat(l3);
+
+            var m1 = 3
+            var l1 = 9
+            var l2 = 18
+            var m2 = 6
+            var m3 = 8
+            var l3 = 24
 
             //var harmonic = SH( l, m, theta, phi );
 
