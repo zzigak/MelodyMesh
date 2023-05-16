@@ -234,9 +234,9 @@ async function main() {
             // scene.add(arrow)
         }
 
-        meanx = meanx / normal.length;
-        meany = meany / normal.length;
-        meanz = meanz / normal.length;
+        meanx = meanx / (normal.length / 3);
+        meany = meany / (normal.length / 3);
+        meanz = meanz / (normal.length / 3);
 
         // mark as dirty so that the positions get re-rendered
         bunny.geometry.attributes.position.needsUpdate = true
@@ -331,6 +331,24 @@ async function main() {
             originalVertexPositions = mesh.geometry.attributes.position.array.slice();
         }
     
+        var m1 = parseFloat(document.getElementById('m1').value);
+        var l1 = parseFloat(document.getElementById('l1').value);
+        document.getElementById("m1").max = l1;
+        document.getElementById("m1label").innerHTML = "m1: ".concat(m1);
+        document.getElementById("l1label").innerHTML = "l1: ".concat(l1);
+
+        var m2 = parseFloat(document.getElementById('m2').value);
+        var l2 = parseFloat(document.getElementById('l2').value);
+        document.getElementById("m2").max = l2;
+        document.getElementById("m2label").innerHTML = "m2: ".concat(m2);
+        document.getElementById("l2label").innerHTML = "l2: ".concat(l2);
+
+        var m3 = parseFloat(document.getElementById('m3').value);
+        var l3 = parseFloat(document.getElementById('l3').value);
+        document.getElementById("m3").max = l3;
+        document.getElementById("m3label").innerHTML = "m3: ".concat(m3);
+        document.getElementById("l3label").innerHTML = "l3: ".concat(l3);
+
         const positions = mesh.geometry.attributes.position.array;
     
         const time = window.performance.now()* 0.0001 * highFreq;
@@ -354,9 +372,9 @@ async function main() {
             //warp = Math.min(Math.max(warp, -5), 5); // Adjust the range as needed to prevent triangles from exploding
 
 
-            let warpX = Math.abs(noise.noise2D(x*rf+time, lowFactor));
-            let warpY = Math.abs(noise.noise2D(y*rf+time, midFactor));
-            let warpZ = Math.abs(noise.noise2D(z*rf+time, highFactor));
+            // let warpX = Math.abs(noise.noise2D(x*rf+time, lowFactor));
+            // let warpY = Math.abs(noise.noise2D(y*rf+time, midFactor));
+            // let warpZ = Math.abs(noise.noise2D(z*rf+time, highFactor));
     
             const normal = new THREE.Vector3(
                 mesh.geometry.attributes.normal.array[i],
@@ -423,42 +441,28 @@ async function main() {
                 }
              }
 
-            var tempx = (x - meanx) ;
-            var tempy = (y - meany) ;
-            var tempz = (z - meanz) ;
-            var r = (tempx**2+(tempy-5)**2+tempz**2)**0.5;
-            var phi = Math.atan((tempy-5)/tempx);
-            var theta = Math.acos(tempz/r);
+            var tempx = (x - meanx);
+            var tempy = (y - meany);
+            var tempz = (z - meanz);
+            var r = (tempx**2 + tempy**2 + tempz**2)**0.5;
+            var phi = Math.atan2(tempy, tempx);
+            var theta = Math.acos(tempz / r);
             
             //
 
-            var m1 = parseFloat(document.getElementById('m1').value);
-            var l1 = parseFloat(document.getElementById('l1').value);
-            document.getElementById("m1").max = l1;
-            document.getElementById("m1label").innerHTML = "m1: ".concat(m1);
-            document.getElementById("l1label").innerHTML = "l1: ".concat(l1);
-
-            var m2 = parseFloat(document.getElementById('m2').value);
-            var l2 = parseFloat(document.getElementById('l2').value);
-            document.getElementById("m2").max = l2;
-            document.getElementById("m2label").innerHTML = "m2: ".concat(m2);
-            document.getElementById("l2label").innerHTML = "l2: ".concat(l2);
-
-            var m3 = parseFloat(document.getElementById('m3').value);
-            var l3 = parseFloat(document.getElementById('l3').value);
-            document.getElementById("m3").max = l3;
-            document.getElementById("m3label").innerHTML = "m3: ".concat(m3);
-            document.getElementById("l3label").innerHTML = "l3: ".concat(l3);
 
             //var harmonic = SH( l, m, theta, phi );
 
-            var lowharmonic =  (SH( l1, m1, theta, phi ))*(r**0.25);
-            var midharmonic =  (SH( l2, m2, theta, phi ))*(r**0.25);
-            var highharmonic =  (SH( l3, m3, theta, phi ))*(r**0.25);
+            // var lowharmonic =  (SH( l1, m1, theta, phi ))*(r**0.25);
+            // var midharmonic =  (SH( l2, m2, theta, phi ))*(r**0.25);
+            // var highharmonic =  (SH( l3, m3, theta, phi ))*(r**0.25);
 
-            positions[i] = x + normal.x  * (lowFactor * lowharmonic + midFactor * midharmonic + highFactor * highharmonic) ;
-            positions[i + 1] = y + normal.y * (lowFactor * lowharmonic + midFactor * midharmonic + highFactor * highharmonic) ;
-            positions[i + 2] = z + normal.z * (lowFactor * lowharmonic + midFactor * midharmonic + highFactor * highharmonic) ;
+            // positions[i] = x + normal.x  * (lowFactor * lowharmonic + midFactor * midharmonic + highFactor * highharmonic) ;
+            // positions[i + 1] = y + normal.y * (lowFactor * lowharmonic + midFactor * midharmonic + highFactor * highharmonic) ;
+            // positions[i + 2] = z + normal.z * (lowFactor * lowharmonic + midFactor * midharmonic + highFactor * highharmonic) ;
+            positions[i] = SH( l1, m1, theta, phi ) * Math.sin(theta) * Math.cos(phi) ;
+            positions[i + 1] = SH( l1, m1, theta, phi ) * Math.sin(theta) * Math.sin(phi) ;
+            positions[i + 2] = SH( l1, m1, theta, phi ) * Math.cos(theta)  ;
             
         }
         
