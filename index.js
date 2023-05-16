@@ -20,9 +20,9 @@ var thetaPhase = 0;
 //spherical harmonics formulas adapted from https://patapom.com/blog/SHPortal/
 
 function K( l, m ) {
-    var temp = ((2.0*l+1.0)*factorial(l-m)) / (4.0*Math.PI*factorial(l+m));   // Here, you can use a precomputed table for factorials
-    return (temp)**0.5;
-    //return K_values[l][m];
+    // var temp = ((2.0*l+1.0)*factorial(l-m)) / (4.0*Math.PI*factorial(l+m));   // Here, you can use a precomputed table for factorials
+    // return (temp)**0.5;
+    return K_values[l][m];
  }
 
 
@@ -182,11 +182,11 @@ const factorials = [
     1, 1, 2, 6, 24, 120, 720, 5040, 40320, 362880, 3628800, 39916800, 479001600, 6227020800, 87178291200, 1307674368000, 20922789888000, 355687428096000, 6402373705728000, 121645100408832000, 2432902008176640000, 51090942171709440000, 1124000727777607680000, 25852016738884976640000, 620448401733239439360000, 15511210043330985984000000, 403291461126605635584000000, 10888869450418352160768000000, 304888344611713860501504000000, 8841761993739701954543616000000, 265252859812191058636308480000000, 8222838654177922817725562880000000, 263130836933693530167218012160000000, 8683317618811886495518194401280000000, 295232799039604140847618609643520000000];
 
 function factorial(n, r = 1) {
-       while (n > 0) r *= n--;
+    //    while (n > 0) r *= n--;
 
        //console.log("R: ", r);
-       return r;
-        //return factorials[n];
+    //    return r;
+        return factorials[n];
     }
 
 // Attempt to speed up the process of computing K
@@ -374,7 +374,7 @@ async function main() {
         bunny = await new Promise((resolve, reject) => {
             try {
                 const loader = new OBJLoader()
-                loader.load('resources/bunny2.obj', root => { // bunny.obj
+                loader.load('resources/sphere5.obj', root => { // bunny.obj
                     // actually get the mesh
                     const bunny = root.children[0]
 
@@ -508,90 +508,107 @@ async function main() {
             camera.updateProjectionMatrix()
         }
 
-        //bunny.rotation.y += 0.001
+        bunny.rotation.y += 0.005
 
         // TODO: map the frequency values to the desired output ranges? (see sample below)
-       //deformMeshWithAudio(bunny, lowMaxFreq, midAvgFreq, upperMaxFreq)
-       deformMeshWithAudio(bunny, 
-            mapRange(lowMaxFreq, 0, 255, 0, 10), 
-            //mapRange(midAvgFreq, 0, 255, 0, 10),
-            mapRange(midMax,0,255,0,10),
-            mapRange(upperMaxFreq, 0, 255, 0, 10)
-        )
+       deformMeshWithAudio(bunny, lowMaxFreq, midMax, upperMaxFreq)
+    //    deformMeshWithAudio(bunny, 
+    //         mapRange(lowMaxFreq, 0, 255, 0, 10), 
+    //         //mapRange(midAvgFreq, 0, 255, 0, 10),
+    //         mapRange(midMax,0,255,0,10),
+    //         mapRange(upperMaxFreq, 0, 255, 0, 10)
+    //     )
 
         renderer.render(scene, camera)
 
         requestAnimationFrame(render)
     }
 
+    function legendrePolynomial(degree, x, order) {
+        const P = new Array(degree + 1);
+        P[0] = 1;
+        P[1] = x;
+    
+        for (let n = 1; n < degree; n++) {
+            P[n + 1] = ((2 * n + 1) * x * P[n] - n * P[n - 1]) / (n + 1);
+        }
+    
+        return P[order];
+    }
+
+    function interpolatedLegendrePolynomial(degree, x, order) {
+        const lowerDegree = Math.floor(degree);
+        const upperDegree = Math.ceil(degree);
+        const degreeInterpolation = degree - lowerDegree;
+    
+        const lowerOrder = Math.floor(order);
+        const upperOrder = Math.ceil(order);
+        const orderInterpolation = order - lowerOrder;
+    
+        const P11 = legendrePolynomial(lowerDegree, x, lowerOrder);
+        const P12 = legendrePolynomial(lowerDegree, x, upperOrder);
+        const P21 = legendrePolynomial(upperDegree, x, lowerOrder);
+        const P22 = legendrePolynomial(upperDegree, x, upperOrder);
+    
+        const interpolatedOrder1 = P11 * (1 - orderInterpolation) + P12 * orderInterpolation;
+        const interpolatedOrder2 = P21 * (1 - orderInterpolation) + P22 * orderInterpolation;
+    
+        const interpolatedValue = interpolatedOrder1 * (1 - degreeInterpolation) + interpolatedOrder2 * degreeInterpolation;
+    
+        return interpolatedValue;
+    }
+    
     function deformMeshWithAudio(mesh, lowFreq, midFreq, highFreq) {
         const geometry = mesh.geometry;
     
         if (!geometry.attributes.position.array) {
-          return;
+            return;
         }
     
         if (!originalVertexPositions) {
-            // Store the original positions of the vertices so we can restore them later
             originalVertexPositions = mesh.geometry.attributes.position.array.slice();
         }
     
-        
-        
-
         const positions = mesh.geometry.attributes.position.array;
     
-        const time = window.performance.now()* 0.0001 * highFreq;
-        const rf = 0.00001;
-        //const freqFactor = lowFreq * 0.1 * (1 + midFreq * 0.1); // Incorporate mid-frequency to adjust scaling
-        const highFactor = highFreq *0.03;
-        const midFactor = midFreq *0.03;
-        const lowFactor = lowFreq * 0.03;    
-        
+        // Map lowFreq to control the degree (shape)
+        // Degree (controlled by lowFreq): Determines the complexity of the shape. 
+        // Higher degree polynomials will have more lobes or oscillations, leading to more intricate deformations.
+        const degree = mapRange(lowFreq, 0, 255, 6, 20);
+    
+        // Map midFreq to control the amplitude of the deformation [0, 2]
+        //  amplitude controls the intensity of the deformation. 
+        // A higher amplitude value will cause more pronounced deformations, while a lower amplitude value will result in more subtle deformations
+        const amplitude = mapRange(midFreq, 0, 255, 0, 2);
+    
+        // Map highFreq to control the order [1, degree - 1]
+        // The order of the Legendre polynomial influences the number of zero crossings 
+        // or the number of times the polynomial changes its sign along its domain. 
+        // It can create asymmetry and add more variations to the shape
+        const order = mapRange(highFreq, 0, 255, 2, degree - 1);
+    
         for (let i = 0; i < positions.length; i += 3) {
             const x = originalVertexPositions[i];
             const y = originalVertexPositions[i + 1];
             const z = originalVertexPositions[i + 2];
     
-            const normal = new THREE.Vector3(
-                mesh.geometry.attributes.normal.array[i],
-                mesh.geometry.attributes.normal.array[i + 1],
-                mesh.geometry.attributes.normal.array[i + 2]
-            );
-
-            var tempx = (x - meanx);
-            var tempy = (y - meany);
-            var tempz = (z - meanz);
-            var r = (tempx**2 + tempy**2 + tempz**2)**0.5;
-            // var phi = Math.atan2(tempy, tempx);
-            // var theta = Math.acos(tempz / r);
-
-            
-
-            var phi = Math.atan2(tempy, tempx) + phiPhase
-            var theta = Math.acos(tempz / r) + thetaPhase;
-
-            var lowharmonic = (SH( l1, m1, theta, phi ))*(r**lowmag);
-            var midharmonic = (SH( l2, m2, theta, phi ))*(r**midmag);
-            var highharmonic = (SH( l3, m3, theta, phi ))*(r**highmag);
-
-            //test spherical harmonic forms here
-            // positions[i] = SH( l1, m1, theta, phi ) * Math.sin(theta) * Math.cos(phi);
-            // positions[i + 1] = SH( l1, m1, theta, phi ) * Math.sin(theta) * Math.sin(phi);
-            // positions[i + 2] = SH( l1, m1, theta, phi ) * Math.cos(theta);
-            
-            positions[i] = x + normal.x  * (lowFactor * lowharmonic + midFactor * midharmonic + highFactor * highharmonic);
-            positions[i + 1] = y + normal.y * (lowFactor * lowharmonic + midFactor * midharmonic + highFactor * highharmonic);
-            positions[i + 2] = z + normal.z * (lowFactor * lowharmonic + midFactor * midharmonic + highFactor * highharmonic);
+            const r = Math.sqrt(x * x + y * y + z * z);
+            const phi = Math.atan2(y, x);
+            const theta = Math.acos(z / r);
+    
+            const Ymn = interpolatedLegendrePolynomial(degree, Math.cos(theta), order);
+            const delta = amplitude * Ymn;
+    
+            const scaleFactor = 1 + delta;
+            positions[i] = x * scaleFactor;
+            positions[i + 1] = y * scaleFactor;
+            positions[i + 2] = z * scaleFactor;
         }
-        
+    
         mesh.geometry.attributes.position.needsUpdate = true;
-
         mesh.geometry.computeVertexNormals();
     }
-    
-    
-      
+       
 
     requestAnimationFrame(render)
 }
