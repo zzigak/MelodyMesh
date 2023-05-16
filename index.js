@@ -269,9 +269,9 @@ async function main() {
             // scene.add(arrow)
         }
 
-        meanx = meanx / normal.length;
-        meany = meany / normal.length;
-        meanz = meanz / normal.length;
+        meanx = meanx / (normal.length / 3);
+        meany = meany / (normal.length / 3);
+        meanz = meanz / (normal.length / 3);
 
         // mark as dirty so that the positions get re-rendered
         bunny.geometry.attributes.position.needsUpdate = true
@@ -521,20 +521,23 @@ async function main() {
             
             
 
-            var tempx = (x - meanx) ;
-            var tempy = (y - meany) ;
-            var tempz = (z - meanz) ;
-            var r = (tempx**2+(tempy-5)**2+tempz**2)**0.5;
-            var phi = Math.atan((tempy-5)/tempx);
-            var theta = Math.acos(tempz/r);
+            var tempx = (x - meanx);
+            var tempy = (y - meany);
+            var tempz = (z - meanz);
+            var r = (tempx**2 + tempy**2 + tempz**2)**0.5;
+            var phi = Math.atan2(tempy, tempx);
+            var theta = Math.acos(tempz / r);
 
             var lowharmonic =  (SH( l1, m1, theta, phi ))*(r**0.25);
             var midharmonic =  (SH( l2, m2, theta, phi ))*(r**0.25);
             var highharmonic =  (SH( l3, m3, theta, phi ))*(r**0.25);
 
-            positions[i] = x + normal.x  * (lowFactor * lowharmonic + midFactor * midharmonic + highFactor * highharmonic) ;
-            positions[i + 1] = y + normal.y * (lowFactor * lowharmonic + midFactor * midharmonic + highFactor * highharmonic) ;
-            positions[i + 2] = z + normal.z * (lowFactor * lowharmonic + midFactor * midharmonic + highFactor * highharmonic) ;
+            positions[i] = x + normal.x  * (lowFactor * lowharmonic + midFactor * midharmonic + highFactor * highharmonic);
+            positions[i + 1] = y + normal.y * (lowFactor * lowharmonic + midFactor * midharmonic + highFactor * highharmonic);
+            positions[i + 2] = z + normal.z * (lowFactor * lowharmonic + midFactor * midharmonic + highFactor * highharmonic);
+            // positions[i] = SH( l1, m1, theta, phi ) * Math.sin(theta) * Math.cos(phi);
+            // positions[i + 1] = SH( l1, m1, theta, phi ) * Math.sin(theta) * Math.sin(phi);
+            // positions[i + 2] = SH( l1, m1, theta, phi ) * Math.cos(theta);
             
         }
         
