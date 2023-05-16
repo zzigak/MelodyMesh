@@ -439,9 +439,9 @@ async function main() {
             // scene.add(arrow)
         }
 
-        meanx = meanx / normal.length;
-        meany = meany / normal.length;
-        meanz = meanz / normal.length;
+        meanx = meanx / (normal.length / 3);
+        meany = meany / (normal.length / 3);
+        meanz = meanz / (normal.length / 3);
 
         // mark as dirty so that the positions get re-rendered
         bunny.geometry.attributes.position.needsUpdate = true
@@ -559,31 +559,30 @@ async function main() {
                 mesh.geometry.attributes.normal.array[i + 2]
             );
 
-            var tempx = (x - meanx) ;
-            var tempy = (y - meany) ;
-            var tempz = (z - meanz) ;
-            var r = (tempx**2+(tempy-5)**2+tempz**2)**0.5;
+            var tempx = (x - meanx);
+            var tempy = (y - meany);
+            var tempz = (z - meanz);
+            var r = (tempx**2 + tempy**2 + tempz**2)**0.5;
+            // var phi = Math.atan2(tempy, tempx);
+            // var theta = Math.acos(tempz / r);
 
             
 
-            var phi = Math.atan((tempy-5)/tempx) + phiPhase;
-            var theta = Math.acos(tempz/r) + thetaPhase;
+            var phi = Math.atan2(tempy, tempx) + phiPhase
+            var theta = Math.acos(tempz / r) + thetaPhase;
 
             var lowharmonic = (SH( l1, m1, theta, phi ))*(r**lowmag);
             var midharmonic = (SH( l2, m2, theta, phi ))*(r**midmag);
             var highharmonic = (SH( l3, m3, theta, phi ))*(r**highmag);
 
             //test spherical harmonic forms here
-            /*
-            positions[i] = SH( l1, m1, theta, phi ) * Math.sin(theta) * Math.cos(phi) ;
-            positions[i + 1] = SH( l1, m1, theta, phi ) * Math.sin(theta) * Math.sin(phi) ;
-            positions[i + 2] = SH( l1, m1, theta, phi ) * Math.cos(theta)  ;
-            */
+            // positions[i] = SH( l1, m1, theta, phi ) * Math.sin(theta) * Math.cos(phi);
+            // positions[i + 1] = SH( l1, m1, theta, phi ) * Math.sin(theta) * Math.sin(phi);
+            // positions[i + 2] = SH( l1, m1, theta, phi ) * Math.cos(theta);
             
-            positions[i] = x + normal.x  * (lowFactor * lowharmonic + midFactor * midharmonic + highFactor * highharmonic) ;
-            positions[i + 1] = y + normal.y * (lowFactor * lowharmonic + midFactor * midharmonic + highFactor * highharmonic) ;
-            positions[i + 2] = z + normal.z * (lowFactor * lowharmonic + midFactor * midharmonic + highFactor * highharmonic) ;
-            
+            positions[i] = x + normal.x  * (lowFactor * lowharmonic + midFactor * midharmonic + highFactor * highharmonic);
+            positions[i + 1] = y + normal.y * (lowFactor * lowharmonic + midFactor * midharmonic + highFactor * highharmonic);
+            positions[i + 2] = z + normal.z * (lowFactor * lowharmonic + midFactor * midharmonic + highFactor * highharmonic);
         }
         
         mesh.geometry.attributes.position.needsUpdate = true;
