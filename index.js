@@ -479,20 +479,30 @@ async function main() {
         }
 
         // loudest frequency in the low range
+        // get sum of magnitudes in the low range
         const lowMax = dataArray.slice(0, lowRange).reduce((a, b) => Math.max(a, b));
         // avg frequency in the middle range
         const midAvg = dataArray.slice(lowRange, midRange).reduce((a, b) => a + b) / (midRange - lowRange);
-        const midMax = dataArray.slice(lowRange,midRange).reduce((a,b)=> Math.max(a,b));
+        const midMax = dataArray.slice(lowRange,midRange).reduce((a,b)=> Math.max(a, b));
         // loudest frequency in the upper range
-        const uppMax = dataArray.slice(midRange, highRange).reduce((a, b) => Math.max(a, b));
+        const uppMax = dataArray.slice(midRange, highRange).reduce((a, b) =>Math.max(a, b));
  
+        
         const lowMaxFreq = lowMax  // / lowRange
        // const midAvgFreq = midAvg
         const midMaxFreq = midMax
         const upperMaxFreq = uppMax // / (highRange - midRange)
 
         //console.log(lowMaxFreq, midMaxFreq, upperMaxFreq)
-        
+
+        const lowSum = dataArray.slice(0, lowRange).reduce((a, b) => a + b, 0);
+        const midSum = dataArray.slice(lowRange, midRange).reduce((a, b) => a + b, 0);
+        const highSum = dataArray.slice(midRange, highRange).reduce((a, b) => a + b, 0);
+
+        console.log("low sum: ", lowSum)
+        console.log("mid sum: ", midSum)
+        console.log("high sum: ", highSum)
+
         let eqOutput = ''; 
         for (let i = 0; i < dataArray.length; i++) {
             const freq = Math.min(1, dataArray[i] / 255); 
@@ -512,11 +522,16 @@ async function main() {
 
         // TODO: map the frequency values to the desired output ranges? (see sample below)
        //deformMeshWithAudio(bunny, lowMaxFreq, midAvgFreq, upperMaxFreq)
-       deformMeshWithAudio(bunny, 
-            mapRange(lowMaxFreq, 0, 255, 0, 10), 
-            //mapRange(midAvgFreq, 0, 255, 0, 10),
-            mapRange(midMax,0,255,0,10),
-            mapRange(upperMaxFreq, 0, 255, 0, 10)
+    //    deformMeshWithAudio(bunny, 
+    //         mapRange(lowMaxFreq, 0, 255, 0, 10), 
+    //         //mapRange(midAvgFreq, 0, 255, 0, 10),
+    //         mapRange(midMax,0,255,0,10),
+    //         mapRange(upperMaxFreq, 0, 255, 0, 10)
+    //     )
+        deformMeshWithAudio(bunny, 
+            mapRange(lowSum, 0, 255 * lowRange, 0, 10), 
+            mapRange(midSum,0,255*(midRange-lowRange),0,10),
+            mapRange(highSum, 0, 255*(highRange-midRange), 0, 10)
         )
 
         renderer.render(scene, camera)
@@ -525,10 +540,11 @@ async function main() {
     }
 
     function deformMeshWithAudio(mesh, lowFreq, midFreq, highFreq) {
+        //console.log("LOW, MID, HIGH: ", lowFreq, midFreq, highFreq)
         const geometry = mesh.geometry;
     
         if (!geometry.attributes.position.array) {
-          return;
+            return;
         }
     
         if (!originalVertexPositions) {
@@ -536,18 +552,11 @@ async function main() {
             originalVertexPositions = mesh.geometry.attributes.position.array.slice();
         }
     
-        
-        
-
         const positions = mesh.geometry.attributes.position.array;
+        const highFactor = highFreq * 0.03;
+        const midFactor = midFreq * 0.03;
+        const lowFactor = lowFreq * 0.03;
     
-        const time = window.performance.now()* 0.0001 * highFreq;
-        const rf = 0.00001;
-        //const freqFactor = lowFreq * 0.1 * (1 + midFreq * 0.1); // Incorporate mid-frequency to adjust scaling
-        const highFactor = highFreq *0.03;
-        const midFactor = midFreq *0.03;
-        const lowFactor = lowFreq * 0.03;    
-        
         for (let i = 0; i < positions.length; i += 3) {
             const x = originalVertexPositions[i];
             const y = originalVertexPositions[i + 1];
@@ -558,37 +567,51 @@ async function main() {
                 mesh.geometry.attributes.normal.array[i + 1],
                 mesh.geometry.attributes.normal.array[i + 2]
             );
+    
+            const tempx = (x - meanx);
+            const tempy = (y - meany);
+            const tempz = (z - meanz);
+            const r = (tempx ** 2 + tempy ** 2 + tempz ** 2) ** 0.5;
+            const phi = Math.atan2(tempy, tempx) + (phiPhase);
+            const theta = Math.acos(tempz / r) + (thetaPhase);
+    
+            const l = Math.floor(lowFreq * 4);
+            const m = Math.floor(midFreq * 4) - l;
+    
+            const Ylm = SH(l, m, theta, phi);
+            const scalingFactor = 1 + highFactor * Ylm;
+    
 
-            var tempx = (x - meanx);
-            var tempy = (y - meany);
-            var tempz = (z - meanz);
-            var r = (tempx**2 + tempy**2 + tempz**2)**0.5;
-            // var phi = Math.atan2(tempy, tempx);
-            // var theta = Math.acos(tempz / r);
+            //var phi = Math.atan2(tempy, tempx) + phiPhase
+            //var theta = Math.acos(tempz / r) + thetaPhase;
+            const phaseScale = 0.5
+            var lowharmonic = (SH( l1, m1, theta, phi + (lowFreq * phaseScale)))*(r**lowmag*2);
+            var midharmonic = (SH( l2, m2, theta, phi + midFreq * phaseScale))*(r**midmag*2);
+            var highharmonic = (SH( l3, m3, theta, phi + highFreq * phaseScale))*(r**highmag*2);
 
-            
+            // Modulate the vertex normals using spherical harmonics
+            const modulatedNormal = normal.clone().multiplyScalar(scalingFactor);
+    
+            // positions[i] = x + modulatedNormal.x;
+            // positions[i + 1] = y + modulatedNormal.y;
+            // positions[i + 2] = z + modulatedNormal.z;
 
-            var phi = Math.atan2(tempy, tempx) + phiPhase
-            var theta = Math.acos(tempz / r) + thetaPhase;
+            // positions[i] = x + modulatedNormal.x ;
+            // positions[i + 1] = y + modulatedNormal.y ;
+            // positions[i + 2] = z + modulatedNormal.z ;
 
-            var lowharmonic = (SH( l1, m1, theta, phi ))*(r**lowmag);
-            var midharmonic = (SH( l2, m2, theta, phi ))*(r**midmag);
-            var highharmonic = (SH( l3, m3, theta, phi ))*(r**highmag);
-
-            //test spherical harmonic forms here
-            // positions[i] = SH( l1, m1, theta, phi ) * Math.sin(theta) * Math.cos(phi);
-            // positions[i + 1] = SH( l1, m1, theta, phi ) * Math.sin(theta) * Math.sin(phi);
-            // positions[i + 2] = SH( l1, m1, theta, phi ) * Math.cos(theta);
-            
-            positions[i] = x + normal.x  * (lowFactor * lowharmonic + midFactor * midharmonic + highFactor * highharmonic);
-            positions[i + 1] = y + normal.y * (lowFactor * lowharmonic + midFactor * midharmonic + highFactor * highharmonic);
-            positions[i + 2] = z + normal.z * (lowFactor * lowharmonic + midFactor * midharmonic + highFactor * highharmonic);
+            // console.log("z + modulatedNormal.z  ",  z + modulatedNormal.z )
+            // console.log("z + modulatedNormal.z  * (lowFactor * lowharmonic + midFactor * midharmonic + highFactor * highharmonic);: ", z + modulatedNormal.z  * (lowFactor * lowharmonic + midFactor * midharmonic + highFactor * highharmonic))
+            positions[i] = x + modulatedNormal.x  * (lowFactor * lowharmonic + midFactor * midharmonic + highFactor * highharmonic);
+            positions[i + 1] = y + modulatedNormal.y* (lowFactor * lowharmonic + midFactor * midharmonic + highFactor * highharmonic);
+            positions[i + 2] = z + modulatedNormal.z * (lowFactor * lowharmonic + midFactor * midharmonic + highFactor * highharmonic);
         }
-        
+    
         mesh.geometry.attributes.position.needsUpdate = true;
-
         mesh.geometry.computeVertexNormals();
     }
+    
+    requestAnimationFrame(render);
     
     
       
