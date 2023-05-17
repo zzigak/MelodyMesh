@@ -25,61 +25,55 @@
         <h4 class="title">Welcome to MelodyMesh</h4>
 
         <label for="material" class="label">Material</label>
-        <br>
         <select name="material" id="material-select">
             <option value="normals">Normals</option>
             <option value="wireframe">Wireframe</option>
         </select>
-        <br>
+
         <label for="object" class="label">Object</label>
-        <br>
         <select name="object" id="object-select">
             <option value="bunny">Bunny</option>
             <option value="sphere">Sphere</option>
         </select>
-        <br />
-        <br />
-        <label for="m1" id="m1label" name="mlabel">Low Degree: 3</label><br />
-        <input type="range" id="m1" name="m1" class="slider" min="0" max="9" step="1" value="3"><br />
-        <label for="l1" id="l1label" name="llabel">Low Order: 9</label><br />
-        <input type="range" id="l1" name="l1" class="slider" min="0" max="30" step="1" value="9"><br />
-        <label for="lowmag" id="lowmaglabel" name="lowmaglabel">Low Magnitude: 0.25</label><br />
-        <input type="range" id="lowmag" name="lowmag" class="slider" min="0.0" max="0.75" step="0.05"
-            value="0.25"><br />
-        <br />
-        <br />
-        <label for="m2" id="m2label" name="mlabel">Mid Degree: 6</label><br />
-        <input type="range" id="m2" name="m2" class="slider" min="0" max="18" step="1" value="6"><br />
-        <label for="l1" id="l2label" name="llabel">Mid Order: 18</label><br />
-        <input type="range" id="l2" name="l2" class="slider" min="0" max="30" step="1" value="18"><br />
-        <label for="midmag" id="midmaglabel" name="midmaglabel">Mid Magnitude: 0.25</label><br />
-        <input type="range" id="midmag" name="midmag" class="slider" min="0.0" max="0.75" step="0.05"
-            value="0.25"><br />
-        <br />
-        <br />
-        <label for="m3" id="m3label" name="mlabel">High Degree: 8</label><br />
-        <input type="range" id="m3" name="m3" class="slider" min="0" max="24" step="1" value="8"><br />
-        <label for="l3" id="l3label" name="llabel">High Order: 24</label><br />
-        <input type="range" id="l3" name="l3" class="slider" min="0" max="30" step="1" value="24"><br />
-        <label for="highmag" id="highmaglabel" name="highmaglabel">High Magnitude: 0.25</label><br />
-        <input type="range" id="highmag" name="highmag" class="slider" min="0.0" max="0.75" step="0.05"
-            value="0.25"><br />
-        <br />
-        <br />
-        <label for="thetaPhase" id="thetaphaselabel" name="thetaphaselabel">Theta Phase: 0.000</label><br />
-        <input type="range" id="thetaPhase" name="thetaPhase" class="slider" min="0.0" max="1.0" step="0.005"
-            value="0.000"><br />
-        <label for="phiPhase" id="phiphaselabel" name="phiphaselabel">Phi Phase: 0.000</label><br />
-        <input type="range" id="phiPhase" name="phiPhase" class="slider" min="0.0" max="1.0" step="0.005"
-            value="0.000"><br />
-        <br />
-        <br />
 
+        <details class="label accordion">
+            <summary>Settings</summary>
+            <label for="m1" id="m1label" name="mlabel">Low Degree: 3</label>
+            <input type="range" id="m1" name="m1" class="slider" min="0" max="9" step="1" value="3">
+            <label for="l1" id="l1label" name="llabel">Low Order: 9</label>
+            <input type="range" id="l1" name="l1" class="slider" min="0" max="30" step="1" value="9">
+            <label for="lowmag" id="lowmaglabel" name="lowmaglabel">Low Magnitude: 0.25</label>
+            <input type="range" id="lowmag" name="lowmag" class="slider" min="0.0" max="0.75" step="0.05" value="0.25">
+
+            <br>
+            <label for="m2" id="m2label" name="mlabel">Mid Degree: 6</label>
+            <input type="range" id="m2" name="m2" class="slider" min="0" max="18" step="1" value="6">
+            <label for="l1" id="l2label" name="llabel">Mid Order: 18</label>
+            <input type="range" id="l2" name="l2" class="slider" min="0" max="30" step="1" value="18">
+            <label for="midmag" id="midmaglabel" name="midmaglabel">Mid Magnitude: 0.25</label>
+            <input type="range" id="midmag" name="midmag" class="slider" min="0.0" max="0.75" step="0.05" value="0.25">
+
+            <br>
+            <label for="m3" id="m3label" name="mlabel">High Degree: 8</label>
+            <input type="range" id="m3" name="m3" class="slider" min="0" max="24" step="1" value="8">
+            <label for="l3" id="l3label" name="llabel">High Order: 24</label>
+            <input type="range" id="l3" name="l3" class="slider" min="0" max="30" step="1" value="24">
+            <label for="highmag" id="highmaglabel" name="highmaglabel">High Magnitude: 0.25</label>
+            <input type="range" id="highmag" name="highmag" class="slider" min="0.0" max="0.75" step="0.05"
+                value="0.25">
+
+            <br>
+            <label for="thetaPhase" id="thetaphaselabel" name="thetaphaselabel">Theta Phase: 0.000</label>
+            <input type="range" id="thetaPhase" name="thetaPhase" class="slider" min="0.0" max="1.0" step="0.005"
+                value="0.000">
+            <label for="phiPhase" id="phiphaselabel" name="phiphaselabel">Phi Phase: 0.000</label>
+            <input type="range" id="phiPhase" name="phiPhase" class="slider" min="0.0" max="1.0" step="0.005"
+                value="0.000">
+        </details>
 
         <label for="audio" class="label" id="label">Upload your MP3:</label>
-        <br />
         <input type="file" class="label" id="song" accept=".mp3">
-        <br /><br />
+
         <button id="playpause" class="button" type="button">Play</button>
 
 

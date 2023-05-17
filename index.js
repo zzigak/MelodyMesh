@@ -475,78 +475,89 @@ async function main() {
         return needResize
     }
 
+    let needsPrinting = true
 
     function render() {
-        audioAnalyzer.getByteFrequencyData(dataArray);
+        if (document.getElementById('playpause').innerHTML == 'Pause') {
+            audioAnalyzer.getByteFrequencyData(dataArray);
+            needsPrinting = true
 
-        // split the frequency data into 3 segments
+            // split the frequency data into 3 segments
 
-        const third = Math.floor(dataArray.length / 3)
-        const twoThird = Math.floor(dataArray.length * 2 / 3)
+            const third = Math.floor(dataArray.length / 3)
+            const twoThird = Math.floor(dataArray.length * 2 / 3)
 
-        let lowRange = third
-        let midRange = twoThird
-        let highRange = dataArray.length
+            let lowRange = third
+            let midRange = twoThird
+            let highRange = dataArray.length
 
-        // For edge case when we have 1 or 2 extra bins in the last range. 
-        // So we increment midRange and decrement highRange to account for that.
-        // Now the ranges will always split evenly and cover all bins.
-        if (dataArray.length % 3 > 0) {
-            midRange++
-            highRange--
-        }
+            // For edge case when we have 1 or 2 extra bins in the last range. 
+            // So we increment midRange and decrement highRange to account for that.
+            // Now the ranges will always split evenly and cover all bins.
+            if (dataArray.length % 3 > 0) {
+                midRange++
+                highRange--
+            }
 
-        // const lowSum = dataArray.slice(0, lowRange).reduce((a, b) => a + b, 0);
-        // const midSum = dataArray.slice(lowRange, midRange).reduce((a, b) => a + b, 0);
-        // const highSum = dataArray.slice(midRange, highRange).reduce((a, b) => a + b, 0);
+            // const lowSum = dataArray.slice(0, lowRange).reduce((a, b) => a + b, 0);
+            // const midSum = dataArray.slice(lowRange, midRange).reduce((a, b) => a + b, 0);
+            // const highSum = dataArray.slice(midRange, highRange).reduce((a, b) => a + b, 0);
 
-        let eqOutput = '';
-        for (let i = 0; i < dataArray.length; i++) {
-            const freq = Math.min(1, dataArray[i] / 255);
-            eqOutput += '='.repeat(freq * 1000 * ((i ** 1.1 + 50) / 255)) + '<br/>';
-        }
+            let eqOutput = '';
+            for (let i = 0; i < dataArray.length; i++) {
+                const freq = Math.min(1, dataArray[i] / 255);
+                eqOutput += '='.repeat(freq * 1000 * ((i ** 1.1 + 50) / 255)) + '<br/>';
+            }
 
-        document.getElementById('eqoutput').innerHTML = eqOutput;
-
-
-        if (resizeRendererToDisplaySize(renderer)) {
-            const canvas = renderer.domElement
-            camera.aspect = canvas.clientWidth / canvas.clientHeight
-            camera.updateProjectionMatrix()
-        }
-
-        //bunny.rotation.y += 0.001
+            document.getElementById('eqoutput').innerHTML = eqOutput;
 
 
-        // var lowMaxSum = 255 * lowRange
-        // var midMaxSum = 255 * (midRange - lowRange)
-        // var highMaxSum = 255 * (highRange - midRange)
+            if (resizeRendererToDisplaySize(renderer)) {
+                const canvas = renderer.domElement
+                camera.aspect = canvas.clientWidth / canvas.clientHeight
+                camera.updateProjectionMatrix()
+            }
 
-        // var lRange = mapRange(lowSum, 0, lowMaxSum , 0, 10)
-        // var mRange = mapRange(midSum,0, midMaxSum, 0, 10)
-        // var hRange = mapRange(highSum, 0, highMaxSum, 0, 10)
+            //bunny.rotation.y += 0.001
 
-        // deformMeshWithAudio(bunny, 
-        //     lRange , 
-        //     mRange,
-        //     hRange
-        // )
 
-        const lowMax = dataArray.slice(0, lowRange).reduce((a, b) => Math.max(a, b));
-        const midMax = dataArray.slice(lowRange, midRange).reduce((a, b) => Math.max(a, b));
-        const uppMax = dataArray.slice(midRange, highRange).reduce((a, b) => Math.max(a, b));
+            // var lowMaxSum = 255 * lowRange
+            // var midMaxSum = 255 * (midRange - lowRange)
+            // var highMaxSum = 255 * (highRange - midRange)
 
-        if (bunny.userData.filename.includes("bunny2.obj")) {
-            deformMeshWithAudio(bunny,
-                mapRange(lowMax, 0, 255, 0, 6),
-                mapRange(midMax, 0, 255, 0, 6),
-                mapRange(uppMax, 0, 255, 0, 6)
-            )
+            // var lRange = mapRange(lowSum, 0, lowMaxSum , 0, 10)
+            // var mRange = mapRange(midSum,0, midMaxSum, 0, 10)
+            // var hRange = mapRange(highSum, 0, highMaxSum, 0, 10)
+
+            // deformMeshWithAudio(bunny, 
+            //     lRange , 
+            //     mRange,
+            //     hRange
+            // )
+
+            const lowMax = dataArray.slice(0, lowRange).reduce((a, b) => Math.max(a, b));
+            const midMax = dataArray.slice(lowRange, midRange).reduce((a, b) => Math.max(a, b));
+            const uppMax = dataArray.slice(midRange, highRange).reduce((a, b) => Math.max(a, b));
+
+            if (bunny.userData.filename.includes("bunny2.obj")) {
+                deformMeshWithAudio(bunny,
+                    mapRange(lowMax, 0, 255, 0, 6),
+                    mapRange(midMax, 0, 255, 0, 6),
+                    mapRange(uppMax, 0, 255, 0, 6)
+                )
+            } else {
+                deformSphereWithAudio(bunny, lowMax, midMax, uppMax)
+            }
+
+
+            renderer.render(scene, camera)
         } else {
-            deformSphereWithAudio(bunny, lowMax, midMax, uppMax)
+            // currently paused
+            if (needsPrinting) {
+                console.log(dataArray)
+                needsPrinting = false
+            }
         }
-
-        renderer.render(scene, camera)
 
         requestAnimationFrame(render)
     }
@@ -611,54 +622,54 @@ async function main() {
         mesh.geometry.computeVertexNormals();
     }
 
-    function deformSphereWithAudio(mesh, lowFreq, midFreq, highFreq) {    
+    function deformSphereWithAudio(mesh, lowFreq, midFreq, highFreq) {
         const geometry = mesh.geometry;
-    
+
         if (!geometry.attributes.position.array) {
             return;
         }
-    
+
         if (!originalVertexPositions) {
             originalVertexPositions = mesh.geometry.attributes.position.array.slice();
         }
-    
+
         const positions = mesh.geometry.attributes.position.array;
-    
+
         // Map lowFreq to control the degree (shape)
         // Degree (controlled by lowFreq): Determines the complexity of the shape. 
         // Higher degree polynomials will have more lobes or oscillations, leading to more intricate deformations.
         const degree = mapRange(lowFreq, 0, 255, 6, 20);
-    
+
         // Map midFreq to control the amplitude of the deformation [0, 2]
         //  amplitude controls the intensity of the deformation. 
         // A higher amplitude value will cause more pronounced deformations, while a lower amplitude value will result in more subtle deformations
         const amplitude = mapRange(midFreq, 0, 255, 0, 2);
-    
+
         // Map highFreq to control the order [1, degree - 1]
         // The order of the Legendre polynomial influences the number of zero crossings 
         // or the number of times the polynomial changes its sign along its domain. 
         // It can create asymmetry and add more variations to the shape
         const order = mapRange(highFreq, 0, 255, 2, degree - 1);
-    
+
         for (let i = 0; i < positions.length; i += 3) {
             const x = originalVertexPositions[i];
             const y = originalVertexPositions[i + 1];
             const z = originalVertexPositions[i + 2];
-    
+
             const r = Math.sqrt(x * x + y * y + z * z);
             const phi = Math.atan2(y, x);
             const theta = Math.acos(z / r);
-    
+
             const Ymn = interpolatedLegendrePolynomial(degree, Math.cos(theta), order);
             //Ymn =  SH(order, degree, theta, phi)
             const delta = amplitude * Ymn;
-    
+
             const scaleFactor = 1 + delta;
             positions[i] = x * scaleFactor;
             positions[i + 1] = y * scaleFactor;
             positions[i + 2] = z * scaleFactor;
         }
-    
+
         mesh.geometry.attributes.position.needsUpdate = true;
         mesh.geometry.computeVertexNormals();
     }

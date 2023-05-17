@@ -11,7 +11,7 @@ body {
 	position: absolute;
 	left: 0;
 	top: 0;
-	width: 33%; 
+	/* width: 33%;  */
 	height: 100%; 
 	background-color: rgba(255,255,255,0.0);
   opacity: 1;
@@ -19,6 +19,11 @@ body {
 	margin-bottom:20px;
 	padding-left: 20px;
 	padding-bottom:20px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
 }
 
 .canvas {
@@ -65,12 +70,14 @@ color:rgb(244, 242, 240);
 font: 12px/12px 'Helvetica Neue', Helvetica, Arial, sans-serif; 
 font-weight: 400; 
 color:rgb(244, 242, 240);
+margin-top: 16px;
 }
 
 label {
 font: 12px/12px 'Helvetica Neue', Helvetica, Arial, sans-serif; 
 font-weight: 400; 
 color:rgb(244, 242, 240);
+display: block;
 }
 
 .eq{
@@ -87,6 +94,7 @@ color:rgb(244, 242, 240);
   background-color: black;
   color: white;
   border: 2px solid rgb(244, 242, 240); 
+  margin-top: 16px;
 }
 
 .button:hover {
@@ -104,7 +112,7 @@ slidecontainer {
 
 .slider {
   -webkit-appearance: none;
-  width: 50%;
+  /* width: 50%; */
   height: 15px;
   border-radius: 4px;
   background: #000000;
@@ -165,11 +173,30 @@ input[type='range']::-ms-fill-lower {
   opacity:1.0;
 }
 
+.accordion {
+  font-size: 14pt;
+  border: 1px solid rgba(255,255,255,0.5);
+  border-radius: 8px;
+  padding: 16px;
 
+  display: flex;
+  flex-direction: column;
+}
 
+details[open] summary {
+  margin-bottom: 24px;
+}
 
+details label {
+  margin-top: 16px;
+  margin-bottom: 8px;
+}
 
-
-
-
-
+#eqoutput {
+  position: fixed;
+  text-align: right;
+  transform: scaleX(50%);
+  transform-origin: top right;
+  right: 0;
+  top: 0;
+}
