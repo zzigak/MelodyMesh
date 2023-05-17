@@ -19,45 +19,43 @@ var thetaPhase = 0;
 
 //spherical harmonics formulas adapted from https://patapom.com/blog/SHPortal/
 
-function K( l, m ) {
-    var temp = ((2.0*l+1.0)*factorial(l-m)) / (4.0*Math.PI*factorial(l+m));   // Here, you can use a precomputed table for factorials
-    return (temp)**0.5;
-    //return K_values[l][m];
- }
+function K(l, m) {
+    var temp = ((2.0 * l + 1.0) * factorial(l - m)) / (4.0 * Math.PI * factorial(l + m));   // Here, you can use a precomputed table for factorials
+    return (temp) ** 0.5;
+}
 
 
-function P( l, m, cosTheta ) {
+function P(l, m, cosTheta) {
     // TODO: consier quantize cosTheta if performance is an issue
 
     if (cachedLegendrePolynomials[l] && cachedLegendrePolynomials[l][m] && cachedLegendrePolynomials[l][m][cosTheta] !== undefined) {
-        //console.log("cache hit!!!");
         return cachedLegendrePolynomials[l][m][cosTheta];
     }
     else {
         var pmm = 1.0;
 
-        if ( m > 0 ) {
-            var somx2 = ((1.0-cosTheta)*(1.0+cosTheta))**0.5;
+        if (m > 0) {
+            var somx2 = ((1.0 - cosTheta) * (1.0 + cosTheta)) ** 0.5;
             var fact = 1.0;
-            for ( var iter=1; iter<=m; iter++ ) {
+            for (var iter = 1; iter <= m; iter++) {
                 pmm *= (-fact) * somx2;
                 fact += 2.0;
             }
         }
 
-        if( l == m ) {
+        if (l == m) {
             return pmm;
         }
 
-        var pmmp1 = cosTheta * (2.0*m+1.0) * pmm;
+        var pmmp1 = cosTheta * (2.0 * m + 1.0) * pmm;
 
-        if ( l == m+1 ) {
+        if (l == m + 1) {
             return pmmp1;
         }
 
         var pll = 0.0;
-        for ( var ll=m+2; ll<=l; ll++ ) {
-            pll = ( (2.0*ll-1.0)*cosTheta*pmmp1-(ll+m-1.0)*pmm ) / (ll-m);
+        for (var ll = m + 2; ll <= l; ll++) {
+            pll = ((2.0 * ll - 1.0) * cosTheta * pmmp1 - (ll + m - 1.0) * pmm) / (ll - m);
             pmm = pmmp1;
             pmmp1 = pll;
         }
@@ -69,10 +67,9 @@ function P( l, m, cosTheta ) {
             cachedLegendrePolynomials[l][m] = {};
         }
         cachedLegendrePolynomials[l][m][cosTheta] = pll;
-        //console.log("cache miss!!!: ", "l= ", l, "m= ", m, "cosTheta= ", cosTheta, "result: ", cachedLegendrePolynomials[l][m][cosTheta]);
         return pll;
     }
- }
+}
 
 function SH(l, m, theta, phi) {
     // TODO: consider quantize theta and phi if performance is an issue
@@ -95,14 +92,12 @@ function SH(l, m, theta, phi) {
         result = sqrt2 * K(l, -m) * Math.sin(-m * phi) * P(l, -m, Math.cos(theta));
     }
 
-    //console.log("cached miss: ", theta, phi, result)
-
     cachedSH[key] = result;
     return result;
 }
 
 
-function updateSliders () {
+function updateSliders() {
     m1 = parseInt(document.getElementById('m1').value);
     l1 = parseInt(document.getElementById('l1').value);
     document.getElementById("m1").max = l1;
@@ -138,37 +133,37 @@ function updateSliders () {
 
 };
 
-document.getElementById("m1").addEventListener("input", function (h){
+document.getElementById("m1").addEventListener("input", function (h) {
     updateSliders();
 });
-document.getElementById("m2").addEventListener("input", function (h){
+document.getElementById("m2").addEventListener("input", function (h) {
     updateSliders();
 });
-document.getElementById("m3").addEventListener("input", function (h){
+document.getElementById("m3").addEventListener("input", function (h) {
     updateSliders();
 });
-document.getElementById("l1").addEventListener("input", function (h){
+document.getElementById("l1").addEventListener("input", function (h) {
     updateSliders();
 });
-document.getElementById("l2").addEventListener("input", function (h){
+document.getElementById("l2").addEventListener("input", function (h) {
     updateSliders();
 });
-document.getElementById("l3").addEventListener("input", function (h){
+document.getElementById("l3").addEventListener("input", function (h) {
     updateSliders();
 });
-document.getElementById("lowmag").addEventListener("input", function (h){
+document.getElementById("lowmag").addEventListener("input", function (h) {
     updateSliders();
 });
-document.getElementById("midmag").addEventListener("input", function (h){
+document.getElementById("midmag").addEventListener("input", function (h) {
     updateSliders();
 });
-document.getElementById("highmag").addEventListener("input", function (h){
+document.getElementById("highmag").addEventListener("input", function (h) {
     updateSliders();
 });
-document.getElementById("thetaPhase").addEventListener("input", function (h){
+document.getElementById("thetaPhase").addEventListener("input", function (h) {
     updateSliders();
 });
-document.getElementById("phiPhase").addEventListener("input", function (h){
+document.getElementById("phiPhase").addEventListener("input", function (h) {
     updateSliders();
 });
 
@@ -182,17 +177,17 @@ const factorials = [
     1, 1, 2, 6, 24, 120, 720, 5040, 40320, 362880, 3628800, 39916800, 479001600, 6227020800, 87178291200, 1307674368000, 20922789888000, 355687428096000, 6402373705728000, 121645100408832000, 2432902008176640000, 51090942171709440000, 1124000727777607680000, 25852016738884976640000, 620448401733239439360000, 15511210043330985984000000, 403291461126605635584000000, 10888869450418352160768000000, 304888344611713860501504000000, 8841761993739701954543616000000, 265252859812191058636308480000000, 8222838654177922817725562880000000, 263130836933693530167218012160000000, 8683317618811886495518194401280000000, 295232799039604140847618609643520000000];
 
 function factorial(n, r = 1) {
-       while (n > 0) r *= n--;
+    while (n > 0) r *= n--;
 
-       //console.log("R: ", r);
-       return r;
-        //return factorials[n];
-    }
+    //console.log("R: ", r);
+    return r;
+    //return factorials[n];
+}
 
 // Attempt to speed up the process of computing K
 function generatePrecomputedK(maxL) {
     const K_values = new Array(maxL + 1);
-    
+
     for (let l = 0; l <= maxL; l++) {
         K_values[l] = new Array(l + 1);
         for (let m = 0; m <= l; m++) {
@@ -202,9 +197,9 @@ function generatePrecomputedK(maxL) {
             K_values[l][m] = Math.sqrt(temp);
         }
     }
-    
+
     return K_values;
-    }
+}
 
 const maxL = 40;
 // Precompute K values we don't have to do it every frame!!!
@@ -223,10 +218,6 @@ function onMaterialChange(selectedIndex = 0) {
         bunny.material = new THREE.MeshNormalMaterial({ flatShading: true })
 }
 
-let noise = new SimplexNoise();
-const mainCanvas = document.getElementById("canvas");
-const label = document.getElementById("label");
-
 let audio = new Audio("resources/Nightmares On Wax - You Wish.mp3");
 
 var firstClick = 1;
@@ -241,11 +232,8 @@ function setAudio() {
         const queryString = window.location.href;
         const url = new URL(queryString);
         var sec = url.searchParams.get("starttime");
-        //console.log(sec)
 
         audio.currentTime = sec
-
-        //console.log(audio)
 
         // Once a song is imported, render the scene
         main()
@@ -263,30 +251,27 @@ function mapRange(val, inMin, inMax, outMin, outMax) {
     // Returns 50 - maps 25 from 10-50 range to 0-100
     var fr = (val - inMin) / (inMax - inMin);
     var delta = outMax - outMin;
-    return outMin + (fr * delta); 
-  }
+    return outMin + (fr * delta);
+}
 
 
 document.getElementById('playpause').addEventListener('click', () => {
     //console.log(audio)
     if (audio.paused) {
 
-        if (firstClick ==1) {
+        if (firstClick == 1) {
             const queryString = window.location.href;
             const url = new URL(queryString);
             var sec = url.searchParams.get("starttime");
-            //console.log(sec)
 
             audio.currentTime = sec
-
-            //console.log(audio)
 
             // Once a song is imported, render the scene
             main()
             audio.play()
             firstClick = 0;
             document.getElementById('playpause').innerHTML = 'Pause'
-        } else{
+        } else {
 
             audio.play()
             document.getElementById('playpause').innerHTML = 'Pause'
@@ -328,11 +313,6 @@ async function main() {
     controls.target.set(0, 0, 0)
     controls.update()
 
-    const wireframeMaterial = new THREE.MeshLambertMaterial({
-        color: "#ffffff",
-        wireframe: true
-    });
-
     const scene = new THREE.Scene()
     scene.background = new THREE.Color("hsl(200, 15%, 20%)")
 
@@ -359,13 +339,13 @@ async function main() {
         scene.add(light.target)
     }
     {
-        const ambientLight = new THREE.AmbientLight( 0xcccccc, 0.1 );
-        scene.add( ambientLight );
+        const ambientLight = new THREE.AmbientLight(0xcccccc, 0.1);
+        scene.add(ambientLight);
     }
     {
-        const pointLight = new THREE.PointLight( 0xffffff, 0.5 );
-        camera.add( pointLight );
-        scene.add( camera );
+        const pointLight = new THREE.PointLight(0xffffff, 0.5);
+        camera.add(pointLight);
+        scene.add(camera);
     }
 
 
@@ -429,14 +409,11 @@ async function main() {
             meany += y
             meanz += z
             const [dx, dy, dz] = normal.slice(i, i + 3)
-            const origin = new THREE.Vector3(x, y, z)
             const direction = new THREE.Vector3(dx, dy, dz).normalize()
-            const arrow = new THREE.ArrowHelper(direction, origin, 2, 0xffff00)
             // offset in the direction of the normal vector
-            position[i] = x + direction.x/100
-            position[i + 1] = y + direction.y/100
-            position[i + 2] = z + direction.z/100
-            // scene.add(arrow)
+            position[i] = x + direction.x / 100
+            position[i + 1] = y + direction.y / 100
+            position[i + 2] = z + direction.z / 100
         }
 
         meanx = meanx / (normal.length / 3);
@@ -463,12 +440,12 @@ async function main() {
 
         // split the frequency data into 3 segments
 
-        const third = Math.floor(dataArray.length / 3)	
+        const third = Math.floor(dataArray.length / 3)
         const twoThird = Math.floor(dataArray.length * 2 / 3)
 
         let lowRange = third
         let midRange = twoThird
-        let highRange = dataArray.length 
+        let highRange = dataArray.length
 
         // For edge case when we have 1 or 2 extra bins in the last range. 
         // So we increment midRange and decrement highRange to account for that.
@@ -483,17 +460,15 @@ async function main() {
         const lowMax = dataArray.slice(0, lowRange).reduce((a, b) => Math.max(a, b));
         // avg frequency in the middle range
         const midAvg = dataArray.slice(lowRange, midRange).reduce((a, b) => a + b) / (midRange - lowRange);
-        const midMax = dataArray.slice(lowRange,midRange).reduce((a,b)=> Math.max(a, b));
+        const midMax = dataArray.slice(lowRange, midRange).reduce((a, b) => Math.max(a, b));
         // loudest frequency in the upper range
-        const uppMax = dataArray.slice(midRange, highRange).reduce((a, b) =>Math.max(a, b));
- 
-        
+        const uppMax = dataArray.slice(midRange, highRange).reduce((a, b) => Math.max(a, b));
+
+
         const lowMaxFreq = lowMax  // / lowRange
-       // const midAvgFreq = midAvg
+        // const midAvgFreq = midAvg
         const midMaxFreq = midMax
         const upperMaxFreq = uppMax // / (highRange - midRange)
-
-        //console.log(lowMaxFreq, midMaxFreq, upperMaxFreq)
 
         const lowSum = dataArray.slice(0, lowRange).reduce((a, b) => a + b, 0);
         const midSum = dataArray.slice(lowRange, midRange).reduce((a, b) => a + b, 0);
@@ -503,35 +478,25 @@ async function main() {
         console.log("mid sum: ", midSum)
         console.log("high sum: ", highSum)
 
-        let eqOutput = ''; 
+        let eqOutput = '';
         for (let i = 0; i < dataArray.length; i++) {
-            const freq = Math.min(1, dataArray[i] / 255); 
-            eqOutput += '='.repeat(freq * 1000 * ((i**1.1+50)/255) ) + '<br/>';
+            const freq = Math.min(1, dataArray[i] / 255);
+            eqOutput += '='.repeat(freq * 1000 * ((i ** 1.1 + 50) / 255)) + '<br/>';
         }
-        
+
         document.getElementById('eqoutput').innerHTML = eqOutput;
 
-        
+
         if (resizeRendererToDisplaySize(renderer)) {
             const canvas = renderer.domElement
             camera.aspect = canvas.clientWidth / canvas.clientHeight
             camera.updateProjectionMatrix()
         }
 
-        //bunny.rotation.y += 0.001
-
-        // TODO: map the frequency values to the desired output ranges? (see sample below)
-       //deformMeshWithAudio(bunny, lowMaxFreq, midAvgFreq, upperMaxFreq)
-    //    deformMeshWithAudio(bunny, 
-    //         mapRange(lowMaxFreq, 0, 255, 0, 10), 
-    //         //mapRange(midAvgFreq, 0, 255, 0, 10),
-    //         mapRange(midMax,0,255,0,10),
-    //         mapRange(upperMaxFreq, 0, 255, 0, 10)
-    //     )
-        deformMeshWithAudio(bunny, 
-            mapRange(lowSum, 0, 255 * lowRange, 0, 10), 
-            mapRange(midSum,0,255*(midRange-lowRange),0,10),
-            mapRange(highSum, 0, 255*(highRange-midRange), 0, 10)
+        deformMeshWithAudio(bunny,
+            mapRange(lowSum, 0, 255 * lowRange, 0, 10),
+            mapRange(midSum, 0, 255 * (midRange - lowRange), 0, 10),
+            mapRange(highSum, 0, 255 * (highRange - midRange), 0, 10)
         )
 
         renderer.render(scene, camera)
@@ -542,79 +507,66 @@ async function main() {
     function deformMeshWithAudio(mesh, lowFreq, midFreq, highFreq) {
         //console.log("LOW, MID, HIGH: ", lowFreq, midFreq, highFreq)
         const geometry = mesh.geometry;
-    
+
         if (!geometry.attributes.position.array) {
             return;
         }
-    
+
         if (!originalVertexPositions) {
             // Store the original positions of the vertices so we can restore them later
             originalVertexPositions = mesh.geometry.attributes.position.array.slice();
         }
-    
+
         const positions = mesh.geometry.attributes.position.array;
         const highFactor = highFreq * 0.03;
         const midFactor = midFreq * 0.03;
         const lowFactor = lowFreq * 0.03;
-    
+
         for (let i = 0; i < positions.length; i += 3) {
             const x = originalVertexPositions[i];
             const y = originalVertexPositions[i + 1];
             const z = originalVertexPositions[i + 2];
-    
+
             const normal = new THREE.Vector3(
                 mesh.geometry.attributes.normal.array[i],
                 mesh.geometry.attributes.normal.array[i + 1],
                 mesh.geometry.attributes.normal.array[i + 2]
             );
-    
+
             const tempx = (x - meanx);
             const tempy = (y - meany);
             const tempz = (z - meanz);
             const r = (tempx ** 2 + tempy ** 2 + tempz ** 2) ** 0.5;
             const phi = Math.atan2(tempy, tempx) + (phiPhase);
             const theta = Math.acos(tempz / r) + (thetaPhase);
-    
+
             const l = Math.floor(lowFreq * 4);
             const m = Math.floor(midFreq * 4) - l;
-    
+
             const Ylm = SH(l, m, theta, phi);
             const scalingFactor = 1 + highFactor * Ylm;
-    
 
-            //var phi = Math.atan2(tempy, tempx) + phiPhase
-            //var theta = Math.acos(tempz / r) + thetaPhase;
             const phaseScale = 0.5
-            var lowharmonic = (SH( l1, m1, theta, phi + (lowFreq * phaseScale)))*(r**lowmag*2);
-            var midharmonic = (SH( l2, m2, theta, phi + midFreq * phaseScale))*(r**midmag*2);
-            var highharmonic = (SH( l3, m3, theta, phi + highFreq * phaseScale))*(r**highmag*2);
+            var lowharmonic = (SH(l1, m1, theta, phi + (lowFreq * phaseScale))) * (r ** lowmag * 2);
+            var midharmonic = (SH(l2, m2, theta, phi + midFreq * phaseScale)) * (r ** midmag * 2);
+            var highharmonic = (SH(l3, m3, theta, phi + highFreq * phaseScale)) * (r ** highmag * 2);
 
             // Modulate the vertex normals using spherical harmonics
             const modulatedNormal = normal.clone().multiplyScalar(scalingFactor);
-    
-            // positions[i] = x + modulatedNormal.x;
-            // positions[i + 1] = y + modulatedNormal.y;
-            // positions[i + 2] = z + modulatedNormal.z;
 
-            // positions[i] = x + modulatedNormal.x ;
-            // positions[i + 1] = y + modulatedNormal.y ;
-            // positions[i + 2] = z + modulatedNormal.z ;
-
-            // console.log("z + modulatedNormal.z  ",  z + modulatedNormal.z )
-            // console.log("z + modulatedNormal.z  * (lowFactor * lowharmonic + midFactor * midharmonic + highFactor * highharmonic);: ", z + modulatedNormal.z  * (lowFactor * lowharmonic + midFactor * midharmonic + highFactor * highharmonic))
-            positions[i] = x + modulatedNormal.x  * (lowFactor * lowharmonic + midFactor * midharmonic + highFactor * highharmonic);
-            positions[i + 1] = y + modulatedNormal.y* (lowFactor * lowharmonic + midFactor * midharmonic + highFactor * highharmonic);
+            positions[i] = x + modulatedNormal.x * (lowFactor * lowharmonic + midFactor * midharmonic + highFactor * highharmonic);
+            positions[i + 1] = y + modulatedNormal.y * (lowFactor * lowharmonic + midFactor * midharmonic + highFactor * highharmonic);
             positions[i + 2] = z + modulatedNormal.z * (lowFactor * lowharmonic + midFactor * midharmonic + highFactor * highharmonic);
         }
-    
+
         mesh.geometry.attributes.position.needsUpdate = true;
         mesh.geometry.computeVertexNormals();
     }
-    
+
     requestAnimationFrame(render);
-    
-    
-      
+
+
+
 
     requestAnimationFrame(render)
 }
