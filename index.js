@@ -103,6 +103,41 @@ function SH(l, m, theta, phi) {
     return result;
 }
 
+function legendrePolynomial(degree, x, order) {
+    const P = new Array(degree + 1);
+    P[0] = 1;
+    P[1] = x;
+
+    for (let n = 1; n < degree; n++) {
+        P[n + 1] = ((2 * n + 1) * x * P[n] - n * P[n - 1]) / (n + 1);
+    }
+
+    return P[order];
+}
+
+function interpolatedLegendrePolynomial(degree, x, order) {
+    const lowerDegree = Math.floor(degree);
+    const upperDegree = Math.ceil(degree);
+    const degreeInterpolation = degree - lowerDegree;
+
+    const lowerOrder = Math.floor(order);
+    const upperOrder = Math.ceil(order);
+    const orderInterpolation = order - lowerOrder;
+
+    const P11 = legendrePolynomial(lowerDegree, x, lowerOrder);
+    const P12 = legendrePolynomial(lowerDegree, x, upperOrder);
+    const P21 = legendrePolynomial(upperDegree, x, lowerOrder);
+    const P22 = legendrePolynomial(upperDegree, x, upperOrder);
+
+    const interpolatedOrder1 = P11 * (1 - orderInterpolation) + P12 * orderInterpolation;
+    const interpolatedOrder2 = P21 * (1 - orderInterpolation) + P22 * orderInterpolation;
+
+    const interpolatedValue = interpolatedOrder1 * (1 - degreeInterpolation) + interpolatedOrder2 * degreeInterpolation;
+
+    return interpolatedValue;
+}
+
+
 
 function updateSliders() {
     m1 = parseInt(document.getElementById('m1').value);
@@ -461,9 +496,9 @@ async function main() {
             highRange--
         }
 
-        const lowSum = dataArray.slice(0, lowRange).reduce((a, b) => a + b, 0);
-        const midSum = dataArray.slice(lowRange, midRange).reduce((a, b) => a + b, 0);
-        const highSum = dataArray.slice(midRange, highRange).reduce((a, b) => a + b, 0);
+        // const lowSum = dataArray.slice(0, lowRange).reduce((a, b) => a + b, 0);
+        // const midSum = dataArray.slice(lowRange, midRange).reduce((a, b) => a + b, 0);
+        // const highSum = dataArray.slice(midRange, highRange).reduce((a, b) => a + b, 0);
 
         let eqOutput = '';
         for (let i = 0; i < dataArray.length; i++) {
@@ -483,9 +518,9 @@ async function main() {
         //bunny.rotation.y += 0.001
 
 
-        var lowMaxSum = 255 * lowRange
-        var midMaxSum = 255 * (midRange - lowRange)
-        var highMaxSum = 255 * (highRange - midRange)
+        // var lowMaxSum = 255 * lowRange
+        // var midMaxSum = 255 * (midRange - lowRange)
+        // var highMaxSum = 255 * (highRange - midRange)
 
         // var lRange = mapRange(lowSum, 0, lowMaxSum , 0, 10)
         // var mRange = mapRange(midSum,0, midMaxSum, 0, 10)
@@ -501,12 +536,15 @@ async function main() {
         const midMax = dataArray.slice(lowRange, midRange).reduce((a, b) => Math.max(a, b));
         const uppMax = dataArray.slice(midRange, highRange).reduce((a, b) => Math.max(a, b));
 
-
-        deformMeshWithAudio(bunny,
-            mapRange(lowMax, 0, 255, 0, 6),
-            mapRange(midMax, 0, 255, 0, 6),
-            mapRange(uppMax, 0, 255, 0, 6)
-        )
+        if (bunny.userData.filename.includes("bunny2.obj")) {
+            deformMeshWithAudio(bunny,
+                mapRange(lowMax, 0, 255, 0, 6),
+                mapRange(midMax, 0, 255, 0, 6),
+                mapRange(uppMax, 0, 255, 0, 6)
+            )
+        } else {
+            deformSphereWithAudio(bunny, lowMax, midMax, uppMax)
+        }
 
         renderer.render(scene, camera)
 
@@ -569,6 +607,58 @@ async function main() {
             positions[i + 2] = z + modulatedNormal.z * (lowFactor * lowharmonic + midFactor * midharmonic + highFactor * highharmonic);
         }
 
+        mesh.geometry.attributes.position.needsUpdate = true;
+        mesh.geometry.computeVertexNormals();
+    }
+
+    function deformSphereWithAudio(mesh, lowFreq, midFreq, highFreq) {    
+        const geometry = mesh.geometry;
+    
+        if (!geometry.attributes.position.array) {
+            return;
+        }
+    
+        if (!originalVertexPositions) {
+            originalVertexPositions = mesh.geometry.attributes.position.array.slice();
+        }
+    
+        const positions = mesh.geometry.attributes.position.array;
+    
+        // Map lowFreq to control the degree (shape)
+        // Degree (controlled by lowFreq): Determines the complexity of the shape. 
+        // Higher degree polynomials will have more lobes or oscillations, leading to more intricate deformations.
+        const degree = mapRange(lowFreq, 0, 255, 6, 20);
+    
+        // Map midFreq to control the amplitude of the deformation [0, 2]
+        //  amplitude controls the intensity of the deformation. 
+        // A higher amplitude value will cause more pronounced deformations, while a lower amplitude value will result in more subtle deformations
+        const amplitude = mapRange(midFreq, 0, 255, 0, 2);
+    
+        // Map highFreq to control the order [1, degree - 1]
+        // The order of the Legendre polynomial influences the number of zero crossings 
+        // or the number of times the polynomial changes its sign along its domain. 
+        // It can create asymmetry and add more variations to the shape
+        const order = mapRange(highFreq, 0, 255, 2, degree - 1);
+    
+        for (let i = 0; i < positions.length; i += 3) {
+            const x = originalVertexPositions[i];
+            const y = originalVertexPositions[i + 1];
+            const z = originalVertexPositions[i + 2];
+    
+            const r = Math.sqrt(x * x + y * y + z * z);
+            const phi = Math.atan2(y, x);
+            const theta = Math.acos(z / r);
+    
+            const Ymn = interpolatedLegendrePolynomial(degree, Math.cos(theta), order);
+            //Ymn =  SH(order, degree, theta, phi)
+            const delta = amplitude * Ymn;
+    
+            const scaleFactor = 1 + delta;
+            positions[i] = x * scaleFactor;
+            positions[i + 1] = y * scaleFactor;
+            positions[i + 2] = z * scaleFactor;
+        }
+    
         mesh.geometry.attributes.position.needsUpdate = true;
         mesh.geometry.computeVertexNormals();
     }
