@@ -354,22 +354,10 @@ async function main() {
         bunny = await new Promise((resolve, reject) => {
             try {
                 const loader = new OBJLoader()
-                loader.load('resources/bunny2.obj', root => { // bunny.obj
+                loader.load('resources/bunny.obj', root => { // bunny.obj
+                    console.log(root)
                     // actually get the mesh
                     const bunny = root.children[0]
-
-                    // transform since the original is tiny
-
-                    bunny.scale.set(1, 1, 1)
-                    bunny.position.y = 0
-                    // apply the transform and then reset
-                    bunny.updateMatrix()
-                    bunny.geometry.applyMatrix4(bunny.matrix)
-                    bunny.position.set(0, 0, 0)
-                    bunny.rotation.set(0, 0, 0)
-                    bunny.scale.set(1, 1, 1)
-                    bunny.updateMatrix()
-                    // merge redundant vertices
                     const old = bunny.geometry
                     // the merge function only merges vertices if they share 
                     // all the same attributes, but the normals are different
@@ -382,7 +370,8 @@ async function main() {
                     //console.log(bunny.material)
                     const mesh = new THREE.Mesh(merged) //wireframeMaterial
                     mesh.geometry.computeVertexNormals()
-
+                    mesh.geometry.setAttribute("mean", new THREE.BufferAttribute(new Float32Array([0, 1, 2]), 1))
+                    console.log(mesh)
                     resolve(mesh)
                 })
             } catch (error) {
@@ -403,18 +392,18 @@ async function main() {
         var meany = 0;
         var meanz = 0;
 
-        for (let i = 0; i < normal.length; i += 3) {
-            const [x, y, z] = position.slice(i, i + 3)
-            meanx += x
-            meany += y
-            meanz += z
-            const [dx, dy, dz] = normal.slice(i, i + 3)
-            const direction = new THREE.Vector3(dx, dy, dz).normalize()
-            // offset in the direction of the normal vector
-            position[i] = x + direction.x / 100
-            position[i + 1] = y + direction.y / 100
-            position[i + 2] = z + direction.z / 100
-        }
+        // for (let i = 0; i < normal.length; i += 3) {
+        //     const [x, y, z] = position.slice(i, i + 3)
+        //     meanx += x
+        //     meany += y
+        //     meanz += z
+        //     const [dx, dy, dz] = normal.slice(i, i + 3)
+        //     const direction = new THREE.Vector3(dx, dy, dz).normalize()
+        //     // offset in the direction of the normal vector
+        //     position[i] = x + direction.x / 100
+        //     position[i + 1] = y + direction.y / 100
+        //     position[i + 2] = z + direction.z / 100
+        // }
 
         meanx = meanx / (normal.length / 3);
         meany = meany / (normal.length / 3);
@@ -474,9 +463,9 @@ async function main() {
         const midSum = dataArray.slice(lowRange, midRange).reduce((a, b) => a + b, 0);
         const highSum = dataArray.slice(midRange, highRange).reduce((a, b) => a + b, 0);
 
-        console.log("low sum: ", lowSum)
-        console.log("mid sum: ", midSum)
-        console.log("high sum: ", highSum)
+        // console.log("low sum: ", lowSum)
+        // console.log("mid sum: ", midSum)
+        // console.log("high sum: ", highSum)
 
         let eqOutput = '';
         for (let i = 0; i < dataArray.length; i++) {
