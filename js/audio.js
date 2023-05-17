@@ -7,12 +7,12 @@ let audioContext, audioSrc, audioAnalyzer
 // prep the audio stuff and return data array
 export async function initializeAudioBuffer() {
     // wait until user interaction. Fuck you chrome
-    await new Promise((resolve, _) => {
-        window.addEventListener("click", function oneshot() {
-            window.removeEventListener("click", oneshot)
-            resolve()
-        })
-    })
+    // await new Promise((resolve, _) => {
+    //     window.addEventListener("click", function oneshot() {
+    //         window.removeEventListener("click", oneshot)
+    //         resolve()
+    //     })
+    // })
 
     audioContext = new AudioContext();
     audioSrc = audioContext.createMediaElementSource(audio);

@@ -5,7 +5,7 @@ import { initializeAudioBuffer, updateAudioBuffer, updateSpectrumBars } from "./
 import { initializeScene, initializeSliders, initializeMaterial, initializePlayer } from "./js/setup.js"
 import { deformMeshWithAudio } from "./js/deformation.js"
 
-async function main() {
+export async function main() {
     const canvas = document.querySelector('#canvas')
     const camera = new THREE.PerspectiveCamera()
     const renderer = new THREE.WebGLRenderer({ antialias: true, canvas })
@@ -16,6 +16,7 @@ async function main() {
     initializePlayer()
 
     const bunny = await loadFromOBJ("resources/sphere5.obj")
+    console.log(bunny)
     initializeMaterial(bunny)
     scene.add(bunny)
 
@@ -41,19 +42,19 @@ async function main() {
             highRange--
         }
 
-        // get sum of magnitudes in each range
-        const lowSum = dataArray.slice(0, lowRange).reduce((a, b) => a + b, 0);
-        const midSum = dataArray.slice(lowRange, midRange).reduce((a, b) => a + b, 0);
-        const highSum = dataArray.slice(midRange, highRange).reduce((a, b) => a + b, 0);
+        const lowMax = dataArray.slice(0, lowRange).reduce((a, b) => Math.max(a, b));
+        const midMax = dataArray.slice(lowRange, midRange).reduce((a, b) => Math.max(a, b));
+        const uppMax = dataArray.slice(midRange, highRange).reduce((a, b) => Math.max(a, b));
+
+
+        deformMeshWithAudio(bunny,
+            mapRange(lowMax, 0, 255, 0, 10),
+            mapRange(midMax, 0, 255, 0, 10),
+            mapRange(uppMax, 0, 255, 0, 10)
+        )
 
         updateSpectrumBars(dataArray)
         handleResize(renderer)
-
-        deformMeshWithAudio(bunny,
-            mapRange(lowSum, 0, 255 * lowRange, 0, 10),
-            mapRange(midSum, 0, 255 * (midRange - lowRange), 0, 10),
-            mapRange(highSum, 0, 255 * (highRange - midRange), 0, 10)
-        )
 
         renderer.render(scene, camera)
         requestAnimationFrame(render)
@@ -122,5 +123,3 @@ function mapRange(val, inMin, inMax, outMin, outMax) {
     var delta = outMax - outMin;
     return outMin + (fr * delta);
 }
-
-main()

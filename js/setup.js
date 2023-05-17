@@ -1,5 +1,6 @@
 import * as THREE from "three"
 import { OrbitControls } from "three/addons/controls/OrbitControls.js"
+import { main } from "../driver.js"
 
 // scene stuff
 export function initializeScene(renderer, scene, camera) {
@@ -62,11 +63,11 @@ export function initializePlayer() {
     const pauseButton = document.getElementById('playpause')
 
     // TODO for debugging purposes, start out by playing audio on click
-    window.addEventListener("click", function oneshot() {
-        audio.play()
-        pauseButton.innerHTML = 'Pause'
-        window.removeEventListener("click", oneshot)
-    })
+    // window.addEventListener("click", function oneshot() {
+    //     audio.play()
+    //     pauseButton.innerHTML = 'Pause'
+    //     window.removeEventListener("click", oneshot)
+    // })
 
     const audioInput = document.getElementById("song");
     audioInput.addEventListener("change", setAudio, false);
@@ -87,6 +88,7 @@ export function initializePlayer() {
             audio.currentTime = sec
 
             audio.play()
+            main()
             pauseButton.innerHTML = 'Pause'
         } else {
             alert("Invalid File Type!")
