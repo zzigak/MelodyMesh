@@ -259,12 +259,16 @@ function setAudio() {
 
 // Helper
 function mapRange(val, inMin, inMax, outMin, outMax) {
-    // Sample: mapRange(25, 10, 50, 0, 100);  
-    // Returns 50 - maps 25 from 10-50 range to 0-100
+    if (inMax === inMin) {
+        console.warn('mapRange: inMin and inMax have the same value, returning outMin.');
+        return outMin;
+    }
+
     var fr = (val - inMin) / (inMax - inMin);
     var delta = outMax - outMin;
     return outMin + (fr * delta); 
-  }
+}
+
 
 
 document.getElementById('playpause').addEventListener('click', () => {
@@ -454,9 +458,10 @@ async function main() {
         const needResize = canvas.width !== width || canvas.height !== height
         if (needResize) {
             renderer.setSize(width, height, false)
-        }
+        } 
         return needResize
     }
+
 
     function render() {
         audioAnalyzer.getByteFrequencyData(dataArray);
@@ -476,32 +481,11 @@ async function main() {
         if (dataArray.length % 3 > 0) {
             midRange++
             highRange--
-        }
-
-        // loudest frequency in the low range
-        // get sum of magnitudes in the low range
-        const lowMax = dataArray.slice(0, lowRange).reduce((a, b) => Math.max(a, b));
-        // avg frequency in the middle range
-        const midAvg = dataArray.slice(lowRange, midRange).reduce((a, b) => a + b) / (midRange - lowRange);
-        const midMax = dataArray.slice(lowRange,midRange).reduce((a,b)=> Math.max(a, b));
-        // loudest frequency in the upper range
-        const uppMax = dataArray.slice(midRange, highRange).reduce((a, b) =>Math.max(a, b));
- 
-        
-        const lowMaxFreq = lowMax  // / lowRange
-       // const midAvgFreq = midAvg
-        const midMaxFreq = midMax
-        const upperMaxFreq = uppMax // / (highRange - midRange)
-
-        //console.log(lowMaxFreq, midMaxFreq, upperMaxFreq)
+        }    
 
         const lowSum = dataArray.slice(0, lowRange).reduce((a, b) => a + b, 0);
         const midSum = dataArray.slice(lowRange, midRange).reduce((a, b) => a + b, 0);
         const highSum = dataArray.slice(midRange, highRange).reduce((a, b) => a + b, 0);
-
-        console.log("low sum: ", lowSum)
-        console.log("mid sum: ", midSum)
-        console.log("high sum: ", highSum)
 
         let eqOutput = ''; 
         for (let i = 0; i < dataArray.length; i++) {
@@ -520,27 +504,39 @@ async function main() {
 
         //bunny.rotation.y += 0.001
 
-        // TODO: map the frequency values to the desired output ranges? (see sample below)
-       //deformMeshWithAudio(bunny, lowMaxFreq, midAvgFreq, upperMaxFreq)
-    //    deformMeshWithAudio(bunny, 
-    //         mapRange(lowMaxFreq, 0, 255, 0, 10), 
-    //         //mapRange(midAvgFreq, 0, 255, 0, 10),
-    //         mapRange(midMax,0,255,0,10),
-    //         mapRange(upperMaxFreq, 0, 255, 0, 10)
-    //     )
-        deformMeshWithAudio(bunny, 
-            mapRange(lowSum, 0, 255 * lowRange, 0, 10), 
-            mapRange(midSum,0,255*(midRange-lowRange),0,10),
-            mapRange(highSum, 0, 255*(highRange-midRange), 0, 10)
-        )
 
+        var lowMaxSum = 255 * lowRange
+        var midMaxSum = 255 * (midRange-lowRange)
+        var highMaxSum = 255 * (highRange-midRange)
+
+        // var lRange = mapRange(lowSum, 0, lowMaxSum , 0, 10)
+        // var mRange = mapRange(midSum,0, midMaxSum, 0, 10)
+        // var hRange = mapRange(highSum, 0, highMaxSum, 0, 10)
+
+        // deformMeshWithAudio(bunny, 
+        //     lRange , 
+        //     mRange,
+        //     hRange
+        // )
+
+        const lowMax = dataArray.slice(0, lowRange).reduce((a, b) => Math.max(a, b));
+        const midMax = dataArray.slice(lowRange,midRange).reduce((a,b)=> Math.max(a,b));
+        const uppMax = dataArray.slice(midRange, highRange).reduce((a, b) => Math.max(a, b));
+
+
+        deformMeshWithAudio(bunny, 
+            mapRange(lowMax, 0, 255, 0, 6), 
+            mapRange(midMax,0,255,0,6),
+            mapRange(uppMax, 0, 255, 0, 6)
+        )
+  
         renderer.render(scene, camera)
 
         requestAnimationFrame(render)
     }
 
     function deformMeshWithAudio(mesh, lowFreq, midFreq, highFreq) {
-        //console.log("LOW, MID, HIGH: ", lowFreq, midFreq, highFreq)
+        console.log("LOW, MID, HIGH: ", lowFreq, midFreq, highFreq)
         const geometry = mesh.geometry;
     
         if (!geometry.attributes.position.array) {
@@ -591,17 +587,10 @@ async function main() {
 
             // Modulate the vertex normals using spherical harmonics
             const modulatedNormal = normal.clone().multiplyScalar(scalingFactor);
-    
-            // positions[i] = x + modulatedNormal.x;
-            // positions[i + 1] = y + modulatedNormal.y;
-            // positions[i + 2] = z + modulatedNormal.z;
 
-            // positions[i] = x + modulatedNormal.x ;
-            // positions[i + 1] = y + modulatedNormal.y ;
-            // positions[i + 2] = z + modulatedNormal.z ;
-
-            // console.log("z + modulatedNormal.z  ",  z + modulatedNormal.z )
-            // console.log("z + modulatedNormal.z  * (lowFactor * lowharmonic + midFactor * midharmonic + highFactor * highharmonic);: ", z + modulatedNormal.z  * (lowFactor * lowharmonic + midFactor * midharmonic + highFactor * highharmonic))
+            // positions[i] = SH( l1, m1, theta, phi ) * Math.sin(theta) * Math.cos(phi);
+            // positions[i + 1] = SH( l1, m1, theta, phi ) * Math.sin(theta) * Math.sin(phi);
+            // positions[i + 2] = SH( l1, m1, theta, phi ) * Math.cos(theta);
             positions[i] = x + modulatedNormal.x  * (lowFactor * lowharmonic + midFactor * midharmonic + highFactor * highharmonic);
             positions[i + 1] = y + modulatedNormal.y* (lowFactor * lowharmonic + midFactor * midharmonic + highFactor * highharmonic);
             positions[i + 2] = z + modulatedNormal.z * (lowFactor * lowharmonic + midFactor * midharmonic + highFactor * highharmonic);
@@ -612,11 +601,6 @@ async function main() {
     }
     
     requestAnimationFrame(render);
-    
-    
-      
-
-    requestAnimationFrame(render)
 }
 
 // main()
