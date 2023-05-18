@@ -375,7 +375,7 @@ async function main() {
     });
 
     const scene = new THREE.Scene()
-    scene.background = new THREE.Color("hsl(200, 15%, 20%)")
+    scene.background = new THREE.Color("hsl(200, 0%, 0%)")
 
     const objectInput = document.getElementById("object-select")
     objectInput.addEventListener("change", async e => onObjectChange(e.target.options.selectedIndex))
@@ -397,7 +397,7 @@ async function main() {
     // lighting goes here
 
     {
-        const skyColor = new THREE.Color("hsl(200, 15%, 20%)") //0xB1E1FF  // light blue
+        const skyColor = new THREE.Color("hsl(200, 0%, 0%)") //0xB1E1FF  // light blue
         const groundColor = 0xB97A20  // brownish orange
         const intensity = 0.5
         const light = new THREE.HemisphereLight(skyColor, groundColor, intensity)
